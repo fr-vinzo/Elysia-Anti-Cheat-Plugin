@@ -59,7 +59,7 @@ public final class MessageUtil {
     }
 
     public static String formatKick(String playerName, String checkName) {
-        return "&8[&4✖&8] &e" + playerName + " &7a été &ckicté &7par &c" + checkName;
+        return "&8[&4✖&8] &e" + playerName + " &7a été &ckick &7par &c" + checkName;
     }
 
     public static String line(char c, int length) {

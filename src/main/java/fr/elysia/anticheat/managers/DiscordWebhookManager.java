@@ -54,7 +54,7 @@ public class DiscordWebhookManager {
 
         String json = buildEmbed(
                 "🔨 Joueur expulsé",
-                "**" + playerName + "** a été kické pour **" + checkName + "**",
+                "**" + playerName + "** a été kick pour **" + checkName + "**",
                 0xFF0000,
                 playerName, checkName, -1, "Seuil de VL atteint");
 
