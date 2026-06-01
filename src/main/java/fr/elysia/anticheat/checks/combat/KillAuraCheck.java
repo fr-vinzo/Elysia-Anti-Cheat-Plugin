@@ -31,8 +31,7 @@ public class KillAuraCheck extends Check {
 
 
         double maxAngle = plugin.getConfig().getDouble("checks.kill-aura.max-angle", 90.0);
-
-        double effectiveMaxAngle = maxAngle * (2.0 - data.getToleranceMultiplier());
+        double effectiveMaxAngle = maxAngle * data.getToleranceMultiplier();
         double angle = MathUtil.getAngleToTarget(player, target);
 
         if (angle > effectiveMaxAngle) {

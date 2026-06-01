@@ -23,10 +23,13 @@ public final class MathUtil {
 
     public static double getAngleToTarget(Player player, Entity target) {
         Vector eyeDir = player.getLocation().getDirection().normalize();
-        Vector toTarget = target.getLocation().toVector()
-                .subtract(player.getEyeLocation().toVector()).normalize();
-        double dot = eyeDir.dot(toTarget);
-        dot = Math.max(-1.0, Math.min(1.0, dot));
+        double targetCenterY = target.getLocation().getY() + target.getHeight() / 2.0;
+        Vector targetCenter = new Vector(
+                target.getLocation().getX(),
+                targetCenterY,
+                target.getLocation().getZ());
+        Vector toTarget = targetCenter.subtract(player.getEyeLocation().toVector()).normalize();
+        double dot = Math.max(-1.0, Math.min(1.0, eyeDir.dot(toTarget)));
         return Math.toDegrees(Math.acos(dot));
     }
 
