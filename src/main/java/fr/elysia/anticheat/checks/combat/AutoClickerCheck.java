@@ -6,15 +6,6 @@ import fr.elysia.anticheat.checks.Check;
 import fr.elysia.anticheat.checks.CheckCategory;
 import fr.elysia.anticheat.data.PlayerData;
 
-/**
- * Détecte les AutoClickers par analyse de la variance des intervalles entre frappes.
- *
- * Un humain clique de façon irrégulière (coefficient de variation > ~15–20%).
- * Un autoclicker produit des intervalles quasi-constants (CV très faible).
- *
- * On combine ce check avec une vérification CPS élevée pour éviter les
- * faux positifs sur des joueurs qui cliquent lentement mais régulièrement.
- */
 public class AutoClickerCheck extends Check {
 
     public AutoClickerCheck(ElysiaAntiCheat plugin) {
@@ -34,11 +25,11 @@ public class AutoClickerCheck extends Check {
         double mean = data.getHitIntervalMean();
         if (mean <= 0) return CheckResult.pass();
 
-        // Coefficient de variation (CV) en pourcentage
+
         double cv = (stdDev / mean) * 100.0;
 
         double minCV = plugin.getConfig().getDouble("checks.autoclicker.min-coefficient-variation", 12.0);
-        // Tolérance : joueurs de confiance ont un seuil légèrement réduit
+
         double effectiveMinCV = minCV / data.getToleranceMultiplier();
 
         if (cv < effectiveMinCV) {

@@ -20,7 +20,7 @@ public final class MathUtil {
         return Math.sqrt(dx * dx + dz * dz);
     }
 
-    /** Angle en degrés entre le regard du joueur et la direction vers la cible. */
+
     public static double getAngleToTarget(Player player, Entity target) {
         Vector eyeDir = player.getLocation().getDirection().normalize();
         Vector toTarget = target.getLocation().toVector()
@@ -34,7 +34,7 @@ public final class MathUtil {
         return Math.max(min, Math.min(max, value));
     }
 
-    /** Calcule la vitesse horizontale entre deux positions. */
+
     public static double horizontalSpeed(Location from, Location to) {
         double dx = to.getX() - from.getX();
         double dz = to.getZ() - from.getZ();

@@ -27,7 +27,7 @@ public final class MessageUtil {
         sender.sendMessage(colorize(message));
     }
 
-    /** Diffuse un message à tous les joueurs ayant la permission elysiaac.alerts. */
+
     public static void broadcastAlert(String message) {
         String formatted = prefix() + " " + colorize(message);
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -52,7 +52,7 @@ public final class MessageUtil {
         return ElysiaAntiCheat.getInstance().getAlertManager().hasAlertsEnabled(p.getUniqueId());
     }
 
-    /** Format utilisé dans les alertes de violation. */
+
     public static String formatAlert(String playerName, String checkName, int vl, String details) {
         return "&8[&c⚠&8] &e" + playerName + " &7a déclenché &c" + checkName
                 + " &7(VL: &c" + vl + "&7) &8» &f" + details;

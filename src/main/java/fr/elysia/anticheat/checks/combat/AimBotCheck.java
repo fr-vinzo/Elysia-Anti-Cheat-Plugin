@@ -9,15 +9,6 @@ import fr.elysia.anticheat.utils.MathUtil;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
-/**
- * Détecte les AimBots par analyse de la précision de visée.
- *
- * Un joueur avec aimbot frappe toujours avec un angle quasi-nul vers la cible
- * (< 3°). Sur 10+ frappes consécutives, cette perfection est statistiquement
- * impossible pour un humain.
- *
- * Ce check est intentionnellement conservateur pour éviter les faux positifs.
- */
 public class AimBotCheck extends Check {
 
     public AimBotCheck(ElysiaAntiCheat plugin) {
@@ -36,7 +27,7 @@ public class AimBotCheck extends Check {
         double avgAngle = data.getAverageAimAngle();
         double maxAvgAngle = plugin.getConfig().getDouble("checks.aimbot.max-avg-angle", 3.0);
 
-        // Tolérance : joueurs de confiance ont un seuil plus bas
+
         double effectiveMax = maxAvgAngle / data.getToleranceMultiplier();
 
         if (avgAngle < effectiveMax) {

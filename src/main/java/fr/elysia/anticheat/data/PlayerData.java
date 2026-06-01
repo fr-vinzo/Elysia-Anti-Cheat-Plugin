@@ -10,7 +10,7 @@ public class PlayerData {
     private final UUID uuid;
     private final String name;
 
-    // ---- Mouvement ----
+
     private Location lastLocation;
     private Location previousLocation;
     private long lastMoveTime;
@@ -19,72 +19,72 @@ public class PlayerData {
     private boolean teleported;
     private long teleportTime;
 
-    // Fenêtre glissante de vitesses horizontales (anti-bypass bunny hop)
+
     private final Deque<Double> speedSamples = new ArrayDeque<>();
     private static final int SPEED_WINDOW = 10;
 
-    // Timer check : timestamps des events de mouvement par seconde
+
     private final Deque<Long> moveTimes = new ArrayDeque<>();
 
-    // Ladder check
+
     private double lastLadderY;
     private long lastLadderTime;
 
-    // Jesus (marche sur l'eau)
+
     private int waterWalkTicks;
 
-    // Step hack
+
     private boolean wasOnGround;
 
-    // ---- Combat ----
+
     private final Deque<Long> hitTimestamps = new ArrayDeque<>();
     private final Map<UUID, Long> recentTargets = new LinkedHashMap<>();
 
-    // AutoClicker variance
+
     private long lastHitTime;
     private final Deque<Long> hitIntervals = new ArrayDeque<>();
 
-    // Velocity (knockback ignoré)
+
     private long lastKnockbackTime;
     private double expectedKbX;
     private double expectedKbZ;
 
-    // AimBot : angles de visée au moment des frappes
+
     private final Deque<Double> aimAngles = new ArrayDeque<>();
 
-    // FastBow
+
     private long lastBowShot;
 
-    // Mace & Wind Charge grace periods (faux positifs 1.21)
+
     private long lastMaceSmashTime;
     private long lastWindChargeLaunchTime;
 
-    // ---- Mining / XRay ----
+
     private int totalBlocksMined;
     private int oresMined;
-    private double weightedOreScore; // minerais rares comptent plus
+    private double weightedOreScore;
     private long miningWindowStart;
     private boolean xraySuspect;
 
-    // InstaBreak
+
     private long blockBreakStart;
     private Material currentlyBreaking;
 
-    // Nuker
+
     private final Deque<Location> recentBreakLocations = new ArrayDeque<>();
     private long lastBreakTime;
 
-    // FastPlace / Scaffold
+
     private final Deque<Long> placeTimes = new ArrayDeque<>();
     private int scaffoldCount;
     private long lastScaffoldTime;
 
-    // ---- Score de confiance ----
-    // Commence à 0.5, monte avec le temps sans violation, descend sur chaque flag
+
+
     private double confidenceScore = 0.5;
     private final long joinTime;
 
-    // ---- Violations ----
+
     private final Map<String, Integer> violationLevels = new HashMap<>();
     private final List<String> recentAlerts = new ArrayList<>();
 
@@ -95,9 +95,9 @@ public class PlayerData {
         this.joinTime = System.currentTimeMillis();
     }
 
-    // ============================================================
-    //  Mouvement
-    // ============================================================
+
+
+
 
     public Location getLastLocation() { return lastLocation; }
     public void setLastLocation(Location loc) { this.lastLocation = loc; }
@@ -121,7 +121,7 @@ public class PlayerData {
     public long getTeleportTime() { return teleportTime; }
     public void setTeleportTime(long t) { this.teleportTime = t; }
 
-    // Fenêtre glissante de vitesse
+
     public void addSpeedSample(double speed) {
         speedSamples.addLast(speed);
         if (speedSamples.size() > SPEED_WINDOW) speedSamples.pollFirst();
@@ -134,7 +134,7 @@ public class PlayerData {
 
     public int getSpeedSampleCount() { return speedSamples.size(); }
 
-    // Timer check
+
     public void recordMovePacket() {
         long now = System.currentTimeMillis();
         moveTimes.addLast(now);
@@ -143,24 +143,24 @@ public class PlayerData {
 
     public int getMovePacketsPerSecond() { return moveTimes.size(); }
 
-    // Ladder
+
     public double getLastLadderY() { return lastLadderY; }
     public void setLastLadderY(double y) { this.lastLadderY = y; }
     public long getLastLadderTime() { return lastLadderTime; }
     public void setLastLadderTime(long t) { this.lastLadderTime = t; }
 
-    // Jesus
+
     public int getWaterWalkTicks() { return waterWalkTicks; }
     public void incrementWaterWalk() { this.waterWalkTicks++; }
     public void resetWaterWalk() { this.waterWalkTicks = 0; }
 
-    // Step
+
     public boolean wasOnGround() { return wasOnGround; }
     public void setWasOnGround(boolean b) { this.wasOnGround = b; }
 
-    // ============================================================
-    //  Combat
-    // ============================================================
+
+
+
 
     public void recordHit(UUID targetUUID) {
         long now = System.currentTimeMillis();
@@ -181,10 +181,7 @@ public class PlayerData {
     public int getCPS() { return hitTimestamps.size(); }
     public int getRecentTargetCount() { return recentTargets.size(); }
 
-    /**
-     * Écart-type des intervalles entre frappes.
-     * Faible écart-type = rythme trop régulier = autoclicker suspect.
-     */
+
     public double getHitIntervalStdDev() {
         if (hitIntervals.size() < 5) return Double.MAX_VALUE;
         double mean = hitIntervals.stream().mapToLong(Long::longValue).average().orElse(0);
@@ -201,7 +198,7 @@ public class PlayerData {
 
     public int getHitIntervalSampleCount() { return hitIntervals.size(); }
 
-    // Velocity
+
     public long getLastKnockbackTime() { return lastKnockbackTime; }
     public void setLastKnockbackTime(long t) { this.lastKnockbackTime = t; }
     public double getExpectedKbX() { return expectedKbX; }
@@ -209,7 +206,7 @@ public class PlayerData {
     public double getExpectedKbZ() { return expectedKbZ; }
     public void setExpectedKbZ(double v) { this.expectedKbZ = v; }
 
-    // AimBot
+
     public void recordAimAngle(double angle) {
         aimAngles.addLast(angle);
         if (aimAngles.size() > 15) aimAngles.pollFirst();
@@ -222,19 +219,19 @@ public class PlayerData {
 
     public int getAimAngleSampleCount() { return aimAngles.size(); }
 
-    // FastBow
+
     public long getLastBowShot() { return lastBowShot; }
     public void setLastBowShot(long t) { this.lastBowShot = t; }
 
-    // Mace & Wind Charge
+
     public long getLastMaceSmashTime() { return lastMaceSmashTime; }
     public void setLastMaceSmashTime(long t) { this.lastMaceSmashTime = t; }
     public long getLastWindChargeLaunchTime() { return lastWindChargeLaunchTime; }
     public void setLastWindChargeLaunchTime(long t) { this.lastWindChargeLaunchTime = t; }
 
-    // ============================================================
-    //  Mining / XRay
-    // ============================================================
+
+
+
 
     public int getTotalBlocksMined() { return totalBlocksMined; }
     public int getOresMined() { return oresMined; }
@@ -269,13 +266,13 @@ public class PlayerData {
     public boolean isXraySuspect() { return xraySuspect; }
     public void setXraySuspect(boolean suspect) { this.xraySuspect = suspect; }
 
-    // InstaBreak
+
     public long getBlockBreakStart() { return blockBreakStart; }
     public void setBlockBreakStart(long t) { this.blockBreakStart = t; }
     public Material getCurrentlyBreaking() { return currentlyBreaking; }
     public void setCurrentlyBreaking(Material m) { this.currentlyBreaking = m; }
 
-    // Nuker
+
     public void recordBreakLocation(Location loc) {
         recentBreakLocations.addLast(loc.clone());
         if (recentBreakLocations.size() > 12) recentBreakLocations.pollFirst();
@@ -285,7 +282,7 @@ public class PlayerData {
     public Deque<Location> getRecentBreakLocations() { return recentBreakLocations; }
     public long getLastBreakTime() { return lastBreakTime; }
 
-    // FastPlace / Scaffold
+
     public void recordPlace() {
         long now = System.currentTimeMillis();
         placeTimes.addLast(now);
@@ -302,9 +299,9 @@ public class PlayerData {
     public void resetScaffold() { this.scaffoldCount = 0; }
     public long getLastScaffoldTime() { return lastScaffoldTime; }
 
-    // ============================================================
-    //  Score de confiance
-    // ============================================================
+
+
+
 
     public double getConfidenceScore() { return confidenceScore; }
 
@@ -316,19 +313,16 @@ public class PlayerData {
         confidenceScore = Math.max(0.0, confidenceScore - amount);
     }
 
-    /**
-     * Multiplicateur appliqué aux seuils de tolérance (1.0 à 1.4).
-     * Un joueur de confiance a plus de marge avant d'être flaggé.
-     */
+
     public double getToleranceMultiplier() {
         return 1.0 + (confidenceScore * 0.4);
     }
 
     public long getJoinTime() { return joinTime; }
 
-    // ============================================================
-    //  Violations
-    // ============================================================
+
+
+
 
     public int getViolationLevel(String checkName) {
         return violationLevels.getOrDefault(checkName, 0);

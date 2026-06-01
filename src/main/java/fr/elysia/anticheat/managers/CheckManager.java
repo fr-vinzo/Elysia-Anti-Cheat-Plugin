@@ -20,7 +20,7 @@ public class CheckManager {
     }
 
     public void registerDefaults() {
-        // Mouvement
+
         register(new SpeedCheck(plugin));
         register(new FlyCheck(plugin));
         register(new NoFallCheck(plugin));
@@ -28,14 +28,14 @@ public class CheckManager {
         register(new StepCheck(plugin));
         register(new FastLadderCheck(plugin));
         register(new JesusCheck(plugin));
-        // Combat
+
         register(new KillAuraCheck(plugin));
         register(new ReachCheck(plugin));
         register(new VelocityCheck(plugin));
         register(new AutoClickerCheck(plugin));
         register(new AimBotCheck(plugin));
         register(new FastBowCheck(plugin));
-        // Monde
+
         register(new XRayCheck(plugin));
         register(new FastPlaceCheck(plugin));
         register(new ScaffoldCheck(plugin));

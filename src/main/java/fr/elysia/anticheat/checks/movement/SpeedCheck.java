@@ -12,17 +12,9 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
 
-/**
- * Détecte le Speed hack avec fenêtre glissante sur 10 ticks.
- *
- * Améliorations v2 :
- * - Moyenne glissante (anti-bypass bunny hop tick-à-tick)
- * - Correction vitesse diagonale (× cos(45°) = 0.707 en vanilla)
- * - Score de confiance intégré dans la tolérance
- */
 public class SpeedCheck extends Check {
 
-    private static final double BASE_MAX_SPEED = 0.34; // blocs/tick sprint vanilla
+    private static final double BASE_MAX_SPEED = 0.34;
 
     public SpeedCheck(ElysiaAntiCheat plugin) {
         super(plugin, "Speed", CheckCategory.MOVEMENT);
@@ -32,17 +24,17 @@ public class SpeedCheck extends Check {
         if (!isEnabled()) return CheckResult.pass();
         if (player.isInsideVehicle()) return CheckResult.pass();
         if (player.isFlying()) return CheckResult.pass();
-        if (player.isGliding()) return CheckResult.pass();  // Élytra
+        if (player.isGliding()) return CheckResult.pass();
         if (player.isSwimming()) return CheckResult.pass();
         if (System.currentTimeMillis() - data.getTeleportTime() < 2500) return CheckResult.pass();
-        // Wind Charge / Mace smash : vitesse anormale temporaire vanilla 1.21
+
         if (System.currentTimeMillis() - data.getLastWindChargeLaunchTime() < 3000) return CheckResult.pass();
         if (System.currentTimeMillis() - data.getLastMaceSmashTime() < 3000) return CheckResult.pass();
 
         double speed = MathUtil.horizontalSpeed(from, to);
         data.addSpeedSample(speed);
 
-        // Nécessite au moins 5 échantillons avant de flaguer
+
         if (data.getSpeedSampleCount() < 5) return CheckResult.pass();
 
         double avgSpeed = data.getAverageSpeed();
@@ -59,17 +51,17 @@ public class SpeedCheck extends Check {
 
     private double getMaxAllowedSpeed(Player player, PlayerData data) {
         double tolerance = plugin.getConfig().getDouble("checks.speed.tolerance", 1.25);
-        // Tolérance augmentée pour les joueurs de confiance
+
         tolerance *= data.getToleranceMultiplier();
         double max = BASE_MAX_SPEED * tolerance;
 
-        // Potion de vitesse
+
         var speedEffect = player.getPotionEffect(PotionEffectType.SPEED);
         if (speedEffect != null) {
             max += (speedEffect.getAmplifier() + 1) * 0.040;
         }
 
-        // Blocs glissants
+
         Block blockBelow = player.getLocation().clone().subtract(0, 0.1, 0).getBlock();
         Material below = blockBelow.getType();
         if (below == Material.ICE || below == Material.PACKED_ICE) {
@@ -78,7 +70,7 @@ public class SpeedCheck extends Check {
             max *= 4.5;
         }
 
-        // Âme de sable (Soul Speed réduit la vitesse — pas besoin de check ici)
+
 
         return max;
     }

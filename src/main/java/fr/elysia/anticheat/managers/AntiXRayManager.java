@@ -8,15 +8,6 @@ import org.bukkit.entity.Player;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * Anti-XRay / ESP — version améliorée.
- *
- * Améliorations v2 :
- * - Utilisation de ChunkSnapshot pour le scan asynchrone (thread-safe)
- * - Obfuscation des chunks adjacents (anti-bypass border)
- * - Révélation progressive dans un rayon de 3 blocs autour du joueur
- * - Faux minerais seed-based par joueur (positions stables entre sessions)
- */
 public class AntiXRayManager {
 
     private final ElysiaAntiCheat plugin;
@@ -24,9 +15,9 @@ public class AntiXRayManager {
     private Material replacementBlock;
     private int maxY;
 
-    /** Blocs obfusqués par joueur : Location → matériau réel */
+
     private final Map<UUID, Map<Location, Material>> hiddenOres = new ConcurrentHashMap<>();
-    /** Chunks déjà obfusqués par joueur : évite le double traitement */
+
     private final Map<UUID, Set<Long>> processedChunks = new ConcurrentHashMap<>();
 
     public AntiXRayManager(ElysiaAntiCheat plugin) {
@@ -51,9 +42,9 @@ public class AntiXRayManager {
         return plugin.getConfig().getBoolean("anti-xray.enabled", true);
     }
 
-    // ---- Obfuscation ----
 
-    /** Obfusque un chunk et ses voisins immédiats pour un joueur (anti-bypass border). */
+
+
     public void obfuscateChunkForPlayer(Player player, Chunk chunk) {
         if (!isEnabled() || player.hasPermission("elysiaac.bypass")) return;
 
@@ -71,11 +62,11 @@ public class AntiXRayManager {
         long chunkKey = chunkKey(chunk);
 
         Set<Long> done = processedChunks.computeIfAbsent(uuid, k -> ConcurrentHashMap.newKeySet());
-        if (!done.add(chunkKey)) return; // déjà traité
+        if (!done.add(chunkKey)) return;
 
         Map<Location, Material> hidden = hiddenOres.computeIfAbsent(uuid, k -> new ConcurrentHashMap<>());
 
-        // ChunkSnapshot est thread-safe — scan async
+
         ChunkSnapshot snapshot = chunk.getChunkSnapshot(false, false, false);
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -109,7 +100,7 @@ public class AntiXRayManager {
         });
     }
 
-    /** Révèle les minerais obfusqués dans un rayon de 3 blocs autour de la position donnée. */
+
     public void revealAdjacentOres(Player player, Location broken) {
         if (!isEnabled()) return;
 
@@ -131,14 +122,14 @@ public class AntiXRayManager {
         }
     }
 
-    /** Envoie des faux minerais à un X-rayer suspecté (seed-based = stable). */
+
     public void sendFakeOres(Player player) {
         if (!isEnabled() || !plugin.getConfig().getBoolean("anti-xray.fake-ores-on-suspect", true)) return;
 
         int count = plugin.getConfig().getInt("anti-xray.fake-ores-count", 30);
         Location base = player.getLocation();
         World world = player.getWorld();
-        // Seed par joueur → positions cohérentes entre appels
+
         Random rng = new Random(player.getUniqueId().getMostSignificantBits());
 
         Material[] rareOres = {
@@ -175,7 +166,7 @@ public class AntiXRayManager {
         int[][] faces = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
         for (int[] f : faces) {
             int nx = x + f[0], ny = y + f[1], nz = z + f[2];
-            // Hors du chunk → considéré comme potentiellement visible (évite faux masquage)
+
             if (nx < 0 || nx > 15 || nz < 0 || nz > 15) return true;
             if (ny < minY || ny > 319) return true;
             Material neighbor = snap.getBlockType(nx, ny, nz);

@@ -9,17 +9,9 @@ import org.bukkit.Material;
 
 import java.util.Map;
 
-/**
- * Détecte le X-Ray par analyse des statistiques de minage.
- *
- * Améliorations v2 :
- * - Score pondéré par rareté : diamant/ancient debris comptent plus que fer/charbon
- * - Réduction des faux positifs pour les explorateurs de grottes
- * - Seuil ajusté selon le score de confiance du joueur
- */
 public class XRayCheck extends Check {
 
-    // Poids de chaque minerai (rare = poids élevé)
+
     private static final Map<Material, Double> ORE_WEIGHTS = Map.ofEntries(
             Map.entry(Material.DIAMOND_ORE, 3.0),
             Map.entry(Material.DEEPSLATE_DIAMOND_ORE, 3.0),
@@ -52,10 +44,7 @@ public class XRayCheck extends Check {
         return ORE_WEIGHTS.getOrDefault(material, 0.0);
     }
 
-    /**
-     * Analyse les statistiques de minage.
-     * Utilise à la fois le ratio brut ET le score pondéré pour plus de précision.
-     */
+
     public CheckResult analyze(PlayerData data) {
         if (!isEnabled()) return CheckResult.pass();
 
@@ -75,11 +64,11 @@ public class XRayCheck extends Check {
         double flagRatio = plugin.getConfig().getDouble("checks.xray.flag-ratio", 0.28);
         double suspectRatio = plugin.getConfig().getDouble("checks.xray.suspicious-ratio", 0.15);
 
-        // Les joueurs de confiance ont un seuil plus élevé
+
         flagRatio *= data.getToleranceMultiplier();
         suspectRatio *= data.getToleranceMultiplier();
 
-        // On flag si le score pondéré OU le ratio brut dépasse le seuil
+
         if (weightedRatio >= flagRatio || rawRatio >= flagRatio * 0.8) {
             return CheckResult.fail(String.format(
                     "ratio_pondéré=%.2f ratio_brut=%.1f%% (minerais=%d/blocs=%d)",

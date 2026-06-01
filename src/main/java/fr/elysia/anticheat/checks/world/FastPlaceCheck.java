@@ -7,10 +7,6 @@ import fr.elysia.anticheat.checks.CheckCategory;
 import fr.elysia.anticheat.data.PlayerData;
 import org.bukkit.entity.Player;
 
-/**
- * Détecte un placement de blocs trop rapide (FastPlace).
- * Vanilla max légitime : ~10–12 blocs/seconde en sprint.
- */
 public class FastPlaceCheck extends Check {
 
     public FastPlaceCheck(ElysiaAntiCheat plugin) {

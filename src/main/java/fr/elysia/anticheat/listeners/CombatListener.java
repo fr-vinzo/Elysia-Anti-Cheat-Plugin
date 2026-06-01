@@ -39,36 +39,36 @@ public class CombatListener implements Listener {
         PlayerData data = plugin.getPlayerDataManager().get(attacker.getUniqueId());
         if (data == null) return;
 
-        // Reach
+
         if (reachCheck != null) {
             CheckResult r = reachCheck.check(attacker, target);
             if (r.isFlagged()) plugin.getViolationManager().flag(attacker, reachCheck.getName(), r.getDetails());
         }
 
-        // KillAura
+
         if (killAuraCheck != null) {
             CheckResult r = killAuraCheck.check(attacker, target, data);
             if (r.isFlagged()) plugin.getViolationManager().flag(attacker, killAuraCheck.getName(), r.getDetails());
         }
 
-        // AutoClicker variance
+
         if (autoClickerCheck != null) {
             CheckResult r = autoClickerCheck.check(data);
             if (r.isFlagged()) plugin.getViolationManager().flag(attacker, autoClickerCheck.getName(), r.getDetails());
         }
 
-        // AimBot
+
         if (aimBotCheck != null) {
             CheckResult r = aimBotCheck.check(attacker, target, data);
             if (r.isFlagged()) plugin.getViolationManager().flag(attacker, aimBotCheck.getName(), r.getDetails());
         }
 
-        // Mace smash attack (1.21) : l'attaquant est projeté en l'air après l'impact
+
         if (attacker.getInventory().getItemInMainHand().getType() == Material.MACE) {
             data.setLastMaceSmashTime(System.currentTimeMillis());
         }
 
-        // Velocity : enregistrer le knockback attendu pour la victime
+
         if (velocityCheck != null && target instanceof Player victim) {
             PlayerData victimData = plugin.getPlayerDataManager().get(victim.getUniqueId());
             if (victimData != null) {

@@ -5,10 +5,6 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
-/**
- * Événement lancé chaque fois qu'un joueur déclenche une vérification de l'anti-cheat.
- * D'autres plugins peuvent annuler cet événement pour empêcher l'action.
- */
 public class ViolationEvent extends Event implements Cancellable {
 
     private static final HandlerList HANDLERS = new HandlerList();

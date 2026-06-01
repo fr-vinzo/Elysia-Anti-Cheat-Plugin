@@ -2,11 +2,6 @@ package fr.elysia.anticheat.checks;
 
 import fr.elysia.anticheat.ElysiaAntiCheat;
 
-/**
- * Classe de base pour tous les checks de l'anti-cheat.
- * Pour ajouter un nouveau check, étends cette classe et implémente la logique
- * dans les listeners appropriés (ou dans le CheckManager).
- */
 public abstract class Check {
 
     protected final ElysiaAntiCheat plugin;

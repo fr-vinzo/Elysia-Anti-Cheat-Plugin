@@ -10,14 +10,6 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
 
-/**
- * Détecte le Fly hack.
- *
- * Améliorations v2 :
- * - Anti-bypass micro-descente : dy >= -0.08 est désormais traité comme "stable en l'air"
- *   mais on ajoute une vérification de chute continue (le joueur doit accélérer vers le bas)
- * - Intégration du score de confiance dans le seuil d'airtime
- */
 @SuppressWarnings("deprecation")
 public class FlyCheck extends Check {
 
@@ -35,9 +27,9 @@ public class FlyCheck extends Check {
         if (player.hasPotionEffect(PotionEffectType.LEVITATION)) return CheckResult.pass();
         if (player.hasPotionEffect(PotionEffectType.SLOW_FALLING)) return CheckResult.pass();
         if (System.currentTimeMillis() - data.getTeleportTime() < 2500) return CheckResult.pass();
-        // Mace smash : le joueur est lancé en l'air après l'attaque (vanilla 1.21)
+
         if (System.currentTimeMillis() - data.getLastMaceSmashTime() < 3000) return CheckResult.pass();
-        // Wind Charge : peut projeter le joueur en l'air
+
         if (System.currentTimeMillis() - data.getLastWindChargeLaunchTime() < 3000) return CheckResult.pass();
 
         boolean onGround = player.isOnGround();
@@ -48,12 +40,12 @@ public class FlyCheck extends Check {
             return CheckResult.pass();
         }
 
-        // Vanilla : en chute libre, la vitesse verticale augmente de -0.08 par tick (gravité)
-        // Si le joueur descend normalement (dy < -0.08), il tombe correctement
-        // Si dy est légèrement négatif mais constant (bypass micro-descente), c'est suspect
+
+
+
 
         if (dy < -0.15) {
-            // Descend vite — chute normale
+
             data.resetAirtime();
             return CheckResult.pass();
         }
@@ -61,7 +53,7 @@ public class FlyCheck extends Check {
         data.incrementAirtime();
 
         int threshold = plugin.getConfig().getInt("checks.fly.airtime-threshold", 25);
-        // Joueurs de confiance : seuil légèrement plus élevé
+
         int effectiveThreshold = (int) (threshold * data.getToleranceMultiplier());
 
         if (data.getAirtimeTicks() >= effectiveThreshold) {

@@ -28,7 +28,7 @@ public final class ElysiaAntiCheat extends JavaPlugin {
         saveDefaultConfig();
         getDataFolder().mkdirs();
 
-        // Managers (ordre important : certains dépendent d'autres)
+
         playerDataManager      = new PlayerDataManager(this);
         checkManager           = new CheckManager(this);
         alertManager           = new AlertManager();
@@ -41,7 +41,7 @@ public final class ElysiaAntiCheat extends JavaPlugin {
         databaseManager.init();
         checkManager.registerDefaults();
 
-        // Listeners
+
         var pm = Bukkit.getPluginManager();
         pm.registerEvents(new PlayerConnectionListener(this), this);
         pm.registerEvents(new PlayerMoveListener(this), this);
@@ -49,20 +49,20 @@ public final class ElysiaAntiCheat extends JavaPlugin {
         pm.registerEvents(new BlockListener(this), this);
         pm.registerEvents(new InteractListener(this), this);
 
-        // Commandes
+
         var eacCmd = getCommand("eac");
         if (eacCmd != null) {
             eacCmd.setExecutor(new AnticheatCommand(this));
             eacCmd.setTabCompleter(new AnticheatTabCompleter(this));
         }
 
-        // Décroissance des violations
+
         int decayInterval = getConfig().getInt("punishments.violation-decay-interval", 60);
         Bukkit.getScheduler().runTaskTimerAsynchronously(this,
                 () -> playerDataManager.decayAll(),
                 decayInterval * 20L, decayInterval * 20L);
 
-        // Init pour les joueurs déjà en ligne (cas /reload)
+
         Bukkit.getScheduler().runTaskLater(this, () -> {
             for (var player : Bukkit.getOnlinePlayers()) {
                 playerDataManager.create(player);
@@ -87,7 +87,7 @@ public final class ElysiaAntiCheat extends JavaPlugin {
         getLogger().info("[Elysia AC] Plugin désactivé proprement.");
     }
 
-    // ---- Getters ----
+
 
     public static ElysiaAntiCheat getInstance()              { return instance; }
 

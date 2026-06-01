@@ -12,10 +12,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffectType;
 
-/**
- * Détecte le Jesus hack : marcher sur la surface de l'eau sans
- * effet ou enchantement légitimes (Frost Walker, Slow Falling, etc.).
- */
 public class JesusCheck extends Check {
 
     public JesusCheck(ElysiaAntiCheat plugin) {
@@ -29,22 +25,22 @@ public class JesusCheck extends Check {
         if (player.hasPotionEffect(PotionEffectType.SLOW_FALLING)) { data.resetWaterWalk(); return CheckResult.pass(); }
         if (System.currentTimeMillis() - data.getTeleportTime() < 2000) { data.resetWaterWalk(); return CheckResult.pass(); }
 
-        // Vérifier si le bloc en dessous est de l'eau
+
         Block blockBelow = to.clone().subtract(0, 0.05, 0).getBlock();
         if (blockBelow.getType() != Material.WATER) {
             data.resetWaterWalk();
             return CheckResult.pass();
         }
 
-        // Le joueur est au-dessus de l'eau mais pas en train de nager
+
         Block blockAtFeet = to.getBlock();
         boolean inWater = blockAtFeet.getType() == Material.WATER;
         if (inWater) { data.resetWaterWalk(); return CheckResult.pass(); }
 
-        // Exemption Frost Walker (bottes)
+
         if (hasFrostWalker(player)) { data.resetWaterWalk(); return CheckResult.pass(); }
 
-        // Le joueur marche sur l'eau : incrémenter le compteur
+
         data.incrementWaterWalk();
         int minTicks = plugin.getConfig().getInt("checks.jesus.min-ticks", 5);
 

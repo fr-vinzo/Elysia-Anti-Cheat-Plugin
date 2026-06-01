@@ -9,15 +9,6 @@ import fr.elysia.anticheat.utils.MathUtil;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-/**
- * Détecte le Scaffold / Tower hack :
- * - Scaffold : poser des blocs sous soi tout en se déplaçant horizontalement
- *   (pont automatique en avançant).
- * - Tower : poser des blocs sous soi tout en sautant verticalement.
- *
- * Un joueur légitime place parfois des blocs sous lui, mais pas de façon
- * répétée et coordonnée à chaque tick de déplacement.
- */
 @SuppressWarnings("deprecation")
 public class ScaffoldCheck extends Check {
 
@@ -30,14 +21,14 @@ public class ScaffoldCheck extends Check {
 
         Location playerFeet = player.getLocation();
 
-        // Le bloc posé doit être au niveau des pieds ou en dessous
+
         int dy = playerFeet.getBlockY() - placedBlock.getBlockY();
         if (dy < 0 || dy > 2) {
             data.resetScaffold();
             return CheckResult.pass();
         }
 
-        // Vérifier si le joueur se déplace horizontalement (scaffold) ou verticalement (tower)
+
         double horizontalSpeed = data.getPreviousLocation() != null
                 ? MathUtil.horizontalSpeed(data.getLastLocation(), playerFeet)
                 : 0;
@@ -48,9 +39,9 @@ public class ScaffoldCheck extends Check {
             return CheckResult.pass();
         }
 
-        // Incrémenter le compteur de blocs scaffold consécutifs
+
         long now = System.currentTimeMillis();
-        // Reset si plus de 2 secondes sans scaffold
+
         if (now - data.getLastScaffoldTime() > 2000 && data.getLastScaffoldTime() > 0) {
             data.resetScaffold();
         }

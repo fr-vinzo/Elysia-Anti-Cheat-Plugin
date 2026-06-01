@@ -9,13 +9,9 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-/**
- * Détecte une montée d'échelle / liane trop rapide.
- * Vitesse max vanilla sur une échelle : ~0.118 blocs/tick.
- */
 public class FastLadderCheck extends Check {
 
-    // Vitesse max vanilla sur échelle/lianes
+
     private static final double MAX_LADDER_SPEED = 0.118;
 
     public FastLadderCheck(ElysiaAntiCheat plugin) {
@@ -33,7 +29,7 @@ public class FastLadderCheck extends Check {
         }
 
         double dy = to.getY() - from.getY();
-        if (dy <= 0) return CheckResult.pass(); // descend, pas de check
+        if (dy <= 0) return CheckResult.pass();
 
         double maxSpeed = plugin.getConfig().getDouble("checks.fast-ladder.max-speed", MAX_LADDER_SPEED);
         double tolerance = data.getToleranceMultiplier() * maxSpeed;

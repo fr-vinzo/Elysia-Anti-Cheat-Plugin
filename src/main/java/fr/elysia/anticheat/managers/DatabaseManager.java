@@ -8,10 +8,6 @@ import java.sql.*;
 import java.util.*;
 import java.util.logging.Level;
 
-/**
- * Gestionnaire SQLite pour la persistance des violations.
- * Stocke l'historique complet même pour les joueurs hors ligne.
- */
 public class DatabaseManager {
 
     private final ElysiaAntiCheat plugin;
@@ -59,7 +55,7 @@ public class DatabaseManager {
         return connection != null && plugin.getConfig().getBoolean("database.enabled", false);
     }
 
-    /** Enregistre une violation de façon asynchrone. */
+
     public void logViolation(String uuid, String name, String checkName, int vl, String details) {
         if (!isEnabled()) return;
 
@@ -81,7 +77,7 @@ public class DatabaseManager {
         });
     }
 
-    /** Récupère les N dernières violations d'un joueur (async + callback). */
+
     public void getViolations(String uuid, int limit, java.util.function.Consumer<List<String>> callback) {
         if (!isEnabled()) { callback.accept(Collections.emptyList()); return; }
 

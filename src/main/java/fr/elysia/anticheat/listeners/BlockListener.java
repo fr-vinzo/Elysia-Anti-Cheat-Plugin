@@ -53,19 +53,19 @@ public class BlockListener implements Listener {
         PlayerData data = plugin.getPlayerDataManager().get(player.getUniqueId());
         if (data == null) return;
 
-        // InstaBreak
+
         if (instaBreakCheck != null) {
             CheckResult r = instaBreakCheck.checkBreak(player, event.getBlock(), data);
             if (r.isFlagged()) plugin.getViolationManager().flag(player, instaBreakCheck.getName(), r.getDetails());
         }
 
-        // Nuker
+
         if (nukerCheck != null) {
             CheckResult r = nukerCheck.check(player, event.getBlock().getLocation(), data);
             if (r.isFlagged()) plugin.getViolationManager().flag(player, nukerCheck.getName(), r.getDetails());
         }
 
-        // XRay
+
         boolean isOre = xrayCheck != null && xrayCheck.isOre(event.getBlock().getType());
         double oreWeight = xrayCheck != null ? xrayCheck.getOreWeight(event.getBlock().getType()) : 0;
         data.recordBlockMined(isOre, oreWeight);
@@ -94,20 +94,20 @@ public class BlockListener implements Listener {
         PlayerData data = plugin.getPlayerDataManager().get(player.getUniqueId());
         if (data == null) return;
 
-        // FastPlace
+
         if (fastPlaceCheck != null) {
             CheckResult r = fastPlaceCheck.check(player, data);
             if (r.isFlagged()) plugin.getViolationManager().flag(player, fastPlaceCheck.getName(), r.getDetails());
         }
 
-        // Scaffold / Tower
+
         if (scaffoldCheck != null) {
             CheckResult r = scaffoldCheck.check(player, event.getBlock().getLocation(), data);
             if (r.isFlagged()) plugin.getViolationManager().flag(player, scaffoldCheck.getName(), r.getDetails());
         }
     }
 
-    /** Détecte le changement de chunk pour l'obfuscation. */
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();

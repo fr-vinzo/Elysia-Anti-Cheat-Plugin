@@ -46,7 +46,7 @@ public class PlayerDataManager {
         return dataMap.containsKey(uuid);
     }
 
-    /** Décroissance périodique des violations pour réduire les faux positifs. */
+
     public void decayAll() {
         int amount = plugin.getConfig().getInt("punishments.violation-decay-rate", 2);
         for (PlayerData data : dataMap.values()) {

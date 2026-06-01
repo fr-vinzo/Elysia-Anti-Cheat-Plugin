@@ -11,25 +11,25 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class AlertManager {
 
-    /** Admins ayant désactivé leurs alertes. */
+
     private final Set<UUID> alertsDisabled = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     public AlertManager() {}
 
-    /** Envoie une alerte à tous les admins en ligne ayant les alertes activées. */
+
     public void sendAlert(Player target, String checkName, int vl, String details) {
         String msg = MessageUtil.formatAlert(target.getName(), checkName, vl, details);
         MessageUtil.broadcastAlert(msg);
     }
 
-    /** Active/désactive les alertes pour un admin. Retourne le nouvel état. */
+
     public boolean toggleAlerts(UUID adminUUID) {
         if (alertsDisabled.contains(adminUUID)) {
             alertsDisabled.remove(adminUUID);
-            return true; // maintenant actif
+            return true;
         } else {
             alertsDisabled.add(adminUUID);
-            return false; // maintenant inactif
+            return false;
         }
     }
 
@@ -37,7 +37,7 @@ public class AlertManager {
         return !alertsDisabled.contains(uuid);
     }
 
-    /** Envoie un message de diffusion global aux admins en ligne. */
+
     public void broadcastToAdmins(String message) {
         String formatted = MessageUtil.prefix() + " " + MessageUtil.colorize(message);
         for (Player p : Bukkit.getOnlinePlayers()) {

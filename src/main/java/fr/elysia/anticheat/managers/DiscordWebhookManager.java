@@ -11,11 +11,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.logging.Level;
 
-/**
- * Envoie des alertes critiques sur un webhook Discord.
- * Utilise l'API Discord Embed pour un rendu propre.
- * Aucune dépendance externe — uniquement java.net.
- */
 public class DiscordWebhookManager {
 
     private final ElysiaAntiCheat plugin;
@@ -35,7 +30,7 @@ public class DiscordWebhookManager {
                 && webhookUrl != null && !webhookUrl.isBlank();
     }
 
-    /** Envoie une alerte de violation sur Discord de façon asynchrone. */
+
     public void sendViolationAlert(String playerName, String checkName, int vl, String details) {
         if (!isEnabled()) return;
 
@@ -47,20 +42,20 @@ public class DiscordWebhookManager {
         String json = buildEmbed(
                 "⚠ Alerte Anti-Cheat",
                 "**" + playerName + "** a déclenché **" + checkName + "**",
-                0xFFA500, // Orange
+                0xFFA500,
                 playerName, checkName, vl, details);
 
         sendAsync(json);
     }
 
-    /** Envoie un message de kick sur Discord. */
+
     public void sendKickAlert(String playerName, String checkName) {
         if (!isEnabled()) return;
 
         String json = buildEmbed(
                 "🔨 Joueur expulsé",
                 "**" + playerName + "** a été kické pour **" + checkName + "**",
-                0xFF0000, // Rouge
+                0xFF0000,
                 playerName, checkName, -1, "Seuil de VL atteint");
 
         sendAsync(json);
@@ -72,7 +67,7 @@ public class DiscordWebhookManager {
         return String.format("""
                 {
                   "username": "Elysia Anti-Cheat",
-                  "avatar_url": "https://minotar.net/avatar/%s",
+                  "avatar_url": "https:
                   "embeds": [{
                     "title": "%s",
                     "description": "%s",

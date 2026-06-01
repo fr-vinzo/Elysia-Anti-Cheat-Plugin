@@ -24,7 +24,7 @@ public class ViolationManager {
         int vl = data.incrementViolation(checkName);
         data.addRecentAlert("§7[VL:" + vl + "] §c" + checkName + " §8» §f" + details);
 
-        // API event — annulable par d'autres plugins
+
         ViolationEvent event = new ViolationEvent(player, checkName, vl, details);
         Bukkit.getPluginManager().callEvent(event);
         if (event.isCancelled()) return;
@@ -34,7 +34,7 @@ public class ViolationManager {
 
         if (vl >= alertVL) {
             plugin.getAlertManager().sendAlert(player, checkName, vl, details);
-            // Discord — uniquement au-dessus du seuil configuré
+
             plugin.getDiscordWebhookManager().sendViolationAlert(
                     player.getName(), checkName, vl, details);
         }
@@ -44,7 +44,7 @@ public class ViolationManager {
                     + " | " + checkName + " | VL:" + vl + " | " + details);
         }
 
-        // Persistance SQLite
+
         plugin.getDatabaseManager().logViolation(
                 player.getUniqueId().toString(), player.getName(), checkName, vl, details);
 

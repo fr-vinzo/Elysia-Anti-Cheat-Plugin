@@ -50,7 +50,7 @@ public class AnticheatCommand implements CommandExecutor {
         return true;
     }
 
-    // ----------------------------------------------------------------
+
 
     private void cmdAlerts(CommandSender sender) {
         if (!(sender instanceof Player player)) {

@@ -7,11 +7,6 @@ import fr.elysia.anticheat.checks.CheckCategory;
 import fr.elysia.anticheat.data.PlayerData;
 import org.bukkit.entity.Player;
 
-/**
- * Détecte un tir à l'arc trop rapide.
- * Un arc prend au moins 1 seconde (20 ticks) pour être pleinement bandé.
- * Avec Quick Charge III sur une arbalète, minimum ~400ms.
- */
 public class FastBowCheck extends Check {
 
     public FastBowCheck(ElysiaAntiCheat plugin) {

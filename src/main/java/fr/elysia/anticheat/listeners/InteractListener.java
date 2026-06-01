@@ -23,17 +23,14 @@ public class InteractListener implements Listener {
         this.fastBowCheck = plugin.getCheckManager().getTyped(FastBowCheck.class);
     }
 
-    /**
-     * Wind Charge (1.21) : quand une boule de vent explose, tous les joueurs proches
-     * sont projetés. On leur accorde une grâce de 3s pour FlyCheck et SpeedCheck.
-     */
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onWindChargeHit(ProjectileHitEvent event) {
         String typeName = event.getEntity().getType().name();
         if (!typeName.equals("WIND_CHARGE") && !typeName.equals("BREEZE_WIND_CHARGE")) return;
 
         long now = System.currentTimeMillis();
-        // Rayon d'effet d'une boule de vent : ~5 blocs
+
         event.getEntity().getNearbyEntities(6, 6, 6).forEach(entity -> {
             if (!(entity instanceof Player nearby)) return;
             if (nearby.hasPermission("elysiaac.bypass")) return;
@@ -43,7 +40,7 @@ public class InteractListener implements Listener {
             }
         });
 
-        // Aussi marquer le shooter si c'est un joueur (wind charge propre)
+
         Projectile proj = event.getEntity();
         if (proj.getShooter() instanceof Player shooter) {
             PlayerData shooterData = plugin.getPlayerDataManager().get(shooter.getUniqueId());

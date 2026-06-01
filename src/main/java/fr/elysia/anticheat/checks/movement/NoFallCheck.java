@@ -15,20 +15,17 @@ public class NoFallCheck extends Check {
         super(plugin, "NoFall", CheckCategory.MOVEMENT);
     }
 
-    /**
-     * Appelé quand un joueur subit des dégâts.
-     * Vérifie si le joueur aurait dû prendre des dégâts de chute mais n'en a pas pris.
-     */
+
     public CheckResult checkDamage(Player player, EntityDamageEvent.DamageCause cause, double fallDistance) {
         if (!isEnabled()) return CheckResult.pass();
 
         double minFall = plugin.getConfig().getDouble("checks.no-fall.min-fall-distance", 4.0);
         if (fallDistance < minFall) return CheckResult.pass();
 
-        // Exemptions
+
         if (player.hasPotionEffect(PotionEffectType.SLOW_FALLING)) return CheckResult.pass();
 
-        // Vérifier les enchantements Feather Falling
+
         var boots = player.getInventory().getBoots();
         if (boots != null) {
             var ff = boots.getEnchantments();
@@ -37,27 +34,24 @@ public class NoFallCheck extends Check {
             }
         }
 
-        // Bloc sous le joueur = filet, toile d'araignée, eau, lave, slime, miel
+
         Material below = player.getLocation().clone().subtract(0, 0.1, 0).getBlock().getType();
         if (isSoftLanding(below)) return CheckResult.pass();
 
-        return CheckResult.pass(); // Le check principal est dans checkNoDamage
+        return CheckResult.pass();
     }
 
-    /**
-     * Déclenché quand un joueur atterrit sans prendre de dégâts de chute alors
-     * que la distance de chute aurait dû en causer.
-     */
+
     public CheckResult checkNoDamage(Player player, double fallDistance) {
         if (!isEnabled()) return CheckResult.pass();
 
         double minFall = plugin.getConfig().getDouble("checks.no-fall.min-fall-distance", 4.0);
         if (fallDistance < minFall) return CheckResult.pass();
 
-        // Exemptions
+
         if (player.hasPotionEffect(PotionEffectType.SLOW_FALLING)) return CheckResult.pass();
         if (player.hasPotionEffect(PotionEffectType.JUMP_BOOST)) return CheckResult.pass();
-        // Mace smash attack : annule les dégâts de chute en vanilla 1.21
+
         if (player.getInventory().getItemInMainHand().getType() == Material.MACE) return CheckResult.pass();
 
         Material below = player.getLocation().clone().subtract(0, 0.1, 0).getBlock().getType();
