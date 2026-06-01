@@ -4,7 +4,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Événement lancé chaque fois qu'un joueur déclenche une vérification de l'anti-cheat.
@@ -39,7 +38,7 @@ public class ViolationEvent extends Event implements Cancellable {
     public void setCancelled(boolean cancel) { this.cancelled = cancel; }
 
     @Override
-    public @NotNull HandlerList getHandlers() { return HANDLERS; }
+    public HandlerList getHandlers() { return HANDLERS; }
 
     public static HandlerList getHandlerList() { return HANDLERS; }
 }
