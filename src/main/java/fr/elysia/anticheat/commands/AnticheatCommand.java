@@ -211,6 +211,7 @@ public class AnticheatCommand implements CommandExecutor {
         MessageUtil.send(sender, "&aConfiguration rechargée avec succès.");
     }
 
+    @SuppressWarnings("deprecation")
     private void cmdVerbose(CommandSender sender, String[] args) {
         if (args.length < 2) {
             MessageUtil.send(sender, "&cUsage : /eac verbose <joueur>");

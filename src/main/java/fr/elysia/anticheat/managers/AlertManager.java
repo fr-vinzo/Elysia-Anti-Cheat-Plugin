@@ -1,6 +1,5 @@
 package fr.elysia.anticheat.managers;
 
-import fr.elysia.anticheat.ElysiaAntiCheat;
 import fr.elysia.anticheat.utils.MessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -12,13 +11,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class AlertManager {
 
-    private final ElysiaAntiCheat plugin;
     /** Admins ayant désactivé leurs alertes. */
     private final Set<UUID> alertsDisabled = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    public AlertManager(ElysiaAntiCheat plugin) {
-        this.plugin = plugin;
-    }
+    public AlertManager() {}
 
     /** Envoie une alerte à tous les admins en ligne ayant les alertes activées. */
     public void sendAlert(Player target, String checkName, int vl, String details) {

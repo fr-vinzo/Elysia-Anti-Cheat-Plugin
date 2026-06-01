@@ -18,6 +18,7 @@ import org.bukkit.entity.Player;
  * Un joueur légitime place parfois des blocs sous lui, mais pas de façon
  * répétée et coordonnée à chaque tick de déplacement.
  */
+@SuppressWarnings("deprecation")
 public class ScaffoldCheck extends Check {
 
     public ScaffoldCheck(ElysiaAntiCheat plugin) {

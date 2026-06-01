@@ -31,7 +31,7 @@ public final class ElysiaAntiCheat extends JavaPlugin {
         // Managers (ordre important : certains dépendent d'autres)
         playerDataManager      = new PlayerDataManager(this);
         checkManager           = new CheckManager(this);
-        alertManager           = new AlertManager(this);
+        alertManager           = new AlertManager();
         antiXRayManager        = new AntiXRayManager(this);
         databaseManager        = new DatabaseManager(this);
         discordWebhookManager  = new DiscordWebhookManager(this);

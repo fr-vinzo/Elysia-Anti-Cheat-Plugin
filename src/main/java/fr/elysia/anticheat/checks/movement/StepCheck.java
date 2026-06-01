@@ -19,6 +19,7 @@ public class StepCheck extends Check {
         super(plugin, "Step", CheckCategory.MOVEMENT);
     }
 
+    @SuppressWarnings("deprecation")
     public CheckResult check(Player player, Location from, Location to, PlayerData data) {
         if (!isEnabled()) return CheckResult.pass();
         if (player.isInsideVehicle()) return CheckResult.pass();

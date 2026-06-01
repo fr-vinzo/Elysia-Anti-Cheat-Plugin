@@ -18,6 +18,7 @@ import org.bukkit.potion.PotionEffectType;
  *   mais on ajoute une vérification de chute continue (le joueur doit accélérer vers le bas)
  * - Intégration du score de confiance dans le seuil d'airtime
  */
+@SuppressWarnings("deprecation")
 public class FlyCheck extends Check {
 
     public FlyCheck(ElysiaAntiCheat plugin) {
