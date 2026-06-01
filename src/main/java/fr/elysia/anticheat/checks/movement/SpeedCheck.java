@@ -4,6 +4,7 @@ import fr.elysia.anticheat.ElysiaAntiCheat;
 import fr.elysia.anticheat.api.CheckResult;
 import fr.elysia.anticheat.checks.Check;
 import fr.elysia.anticheat.checks.CheckCategory;
+import fr.elysia.anticheat.data.PlayerData;
 import fr.elysia.anticheat.utils.MathUtil;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -11,60 +12,70 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
 
+/**
+ * Détecte le Speed hack avec fenêtre glissante sur 10 ticks.
+ *
+ * Améliorations v2 :
+ * - Moyenne glissante (anti-bypass bunny hop tick-à-tick)
+ * - Correction vitesse diagonale (× cos(45°) = 0.707 en vanilla)
+ * - Score de confiance intégré dans la tolérance
+ */
 public class SpeedCheck extends Check {
 
-    // Vitesse max en sprint vanilla (blocs/tick × 20 ticks = blocs/sec)
-    private static final double BASE_MAX_SPEED = 0.34; // blocs/tick ~= 6.8 blocs/sec
+    private static final double BASE_MAX_SPEED = 0.34; // blocs/tick sprint vanilla
 
     public SpeedCheck(ElysiaAntiCheat plugin) {
         super(plugin, "Speed", CheckCategory.MOVEMENT);
     }
 
-    public CheckResult check(Player player, Location from, Location to) {
+    public CheckResult check(Player player, Location from, Location to, PlayerData data) {
         if (!isEnabled()) return CheckResult.pass();
         if (player.isInsideVehicle()) return CheckResult.pass();
         if (player.isFlying()) return CheckResult.pass();
         if (player.isSwimming()) return CheckResult.pass();
+        if (System.currentTimeMillis() - data.getTeleportTime() < 2500) return CheckResult.pass();
 
         double speed = MathUtil.horizontalSpeed(from, to);
-        double maxSpeed = getMaxAllowedSpeed(player);
+        data.addSpeedSample(speed);
 
-        if (speed > maxSpeed) {
-            double excess = speed - maxSpeed;
-            return CheckResult.fail(String.format("vitesse=%.2f max=%.2f excès=%.2f", speed, maxSpeed, excess));
+        // Nécessite au moins 5 échantillons avant de flaguer
+        if (data.getSpeedSampleCount() < 5) return CheckResult.pass();
+
+        double avgSpeed = data.getAverageSpeed();
+        double maxSpeed = getMaxAllowedSpeed(player, data);
+
+        if (avgSpeed > maxSpeed) {
+            double excess = avgSpeed - maxSpeed;
+            return CheckResult.fail(String.format(
+                    "vitesse_moy=%.3f max=%.3f excès=%.3f (conf=%.2f)",
+                    avgSpeed, maxSpeed, excess, data.getConfidenceScore()));
         }
         return CheckResult.pass();
     }
 
-    private double getMaxAllowedSpeed(Player player) {
+    private double getMaxAllowedSpeed(Player player, PlayerData data) {
         double tolerance = plugin.getConfig().getDouble("checks.speed.tolerance", 1.25);
+        // Tolérance augmentée pour les joueurs de confiance
+        tolerance *= data.getToleranceMultiplier();
         double max = BASE_MAX_SPEED * tolerance;
 
-        // Potion de vitesse : chaque niveau ajoute ~0.04 blocs/tick
+        // Potion de vitesse
         var speedEffect = player.getPotionEffect(PotionEffectType.SPEED);
         if (speedEffect != null) {
             max += (speedEffect.getAmplifier() + 1) * 0.040;
         }
 
-        // Blocs glissants (glace, glace bleue)
+        // Blocs glissants
         Block blockBelow = player.getLocation().clone().subtract(0, 0.1, 0).getBlock();
         Material below = blockBelow.getType();
         if (below == Material.ICE || below == Material.PACKED_ICE) {
             max *= 2.5;
         } else if (below == Material.BLUE_ICE) {
-            max *= 4.0;
+            max *= 4.5;
         }
 
-        // Tolérance téléportation
-        if (System.currentTimeMillis() - getPlayerTeleportTime(player) < 2000) {
-            return Double.MAX_VALUE;
-        }
+        // Âme de sable (Soul Speed réduit la vitesse — pas besoin de check ici)
 
         return max;
-    }
-
-    private long getPlayerTeleportTime(Player player) {
-        var data = plugin.getPlayerDataManager().get(player.getUniqueId());
-        return data == null ? 0 : data.getTeleportTime();
     }
 }

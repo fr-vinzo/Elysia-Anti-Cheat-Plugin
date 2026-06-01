@@ -6,7 +6,7 @@
 
     <groupId>fr.elysia</groupId>
     <artifactId>elysia-anti-cheat</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <packaging>jar</packaging>
 
     <name>ElysiaAntiCheat</name>
@@ -30,6 +30,13 @@
             <artifactId>spigot-api</artifactId>
             <version>1.21-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
+        </dependency>
+        <!-- SQLite JDBC — bundled dans le jar final pour l'historique persistant -->
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>3.45.3.0</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
 
@@ -56,6 +63,12 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <relocations>
+                                <relocation>
+                                    <pattern>org.sqlite</pattern>
+                                    <shadedPattern>fr.elysia.anticheat.libs.sqlite</shadedPattern>
+                                </relocation>
+                            </relocations>
                         </configuration>
                     </execution>
                 </executions>

@@ -18,22 +18,27 @@ public final class ElysiaAntiCheat extends JavaPlugin {
     private ViolationManager violationManager;
     private AlertManager alertManager;
     private AntiXRayManager antiXRayManager;
+    private DatabaseManager databaseManager;
+    private DiscordWebhookManager discordWebhookManager;
     private CheckAPI checkAPI;
 
     @Override
     public void onEnable() {
         instance = this;
         saveDefaultConfig();
+        getDataFolder().mkdirs();
 
-        // Managers
-        playerDataManager = new PlayerDataManager(this);
-        checkManager      = new CheckManager(this);
-        violationManager  = new ViolationManager(this);
-        alertManager      = new AlertManager(this);
-        antiXRayManager   = new AntiXRayManager(this);
-        checkAPI          = new CheckAPI(this);
+        // Managers (ordre important : certains dépendent d'autres)
+        playerDataManager      = new PlayerDataManager(this);
+        checkManager           = new CheckManager(this);
+        alertManager           = new AlertManager(this);
+        antiXRayManager        = new AntiXRayManager(this);
+        databaseManager        = new DatabaseManager(this);
+        discordWebhookManager  = new DiscordWebhookManager(this);
+        violationManager       = new ViolationManager(this);
+        checkAPI               = new CheckAPI(this);
 
-        // Enregistrement des checks par défaut
+        databaseManager.init();
         checkManager.registerDefaults();
 
         // Listeners
@@ -42,6 +47,7 @@ public final class ElysiaAntiCheat extends JavaPlugin {
         pm.registerEvents(new PlayerMoveListener(this), this);
         pm.registerEvents(new CombatListener(this), this);
         pm.registerEvents(new BlockListener(this), this);
+        pm.registerEvents(new InteractListener(this), this);
 
         // Commandes
         var eacCmd = getCommand("eac");
@@ -50,13 +56,13 @@ public final class ElysiaAntiCheat extends JavaPlugin {
             eacCmd.setTabCompleter(new AnticheatTabCompleter(this));
         }
 
-        // Tâche de décroissance des violations
+        // Décroissance des violations
         int decayInterval = getConfig().getInt("punishments.violation-decay-interval", 60);
         Bukkit.getScheduler().runTaskTimerAsynchronously(this,
                 () -> playerDataManager.decayAll(),
                 decayInterval * 20L, decayInterval * 20L);
 
-        // Obfuscation initiale pour les joueurs déjà en ligne (ex: /reload)
+        // Init pour les joueurs déjà en ligne (cas /reload)
         Bukkit.getScheduler().runTaskLater(this, () -> {
             for (var player : Bukkit.getOnlinePlayers()) {
                 playerDataManager.create(player);
@@ -67,25 +73,30 @@ public final class ElysiaAntiCheat extends JavaPlugin {
         }, 20L);
 
         getLogger().info(MessageUtil.colorize(
-                "&6[Elysia AC] &aPlugin chargé avec succès ! " + checkManager.getAll().size() + " checks actifs."));
+                "&6[Elysia AC] &aPlugin chargé — &e"
+                        + checkManager.getAll().size() + " checks actifs"
+                        + (databaseManager.isEnabled() ? " &7| &aSQLite ON" : "")
+                        + (discordWebhookManager.isEnabled() ? " &7| &aDiscord ON" : "") + "&a."));
     }
 
     @Override
     public void onDisable() {
         Bukkit.getScheduler().cancelTasks(this);
-        playerDataManager.getAll().forEach(d ->
-                antiXRayManager.cleanup(d.getUuid()));
-        getLogger().info("[Elysia AC] Plugin désactivé.");
+        playerDataManager.getAll().forEach(d -> antiXRayManager.cleanup(d.getUuid()));
+        databaseManager.close();
+        getLogger().info("[Elysia AC] Plugin désactivé proprement.");
     }
 
     // ---- Getters ----
 
-    public static ElysiaAntiCheat getInstance() { return instance; }
+    public static ElysiaAntiCheat getInstance()              { return instance; }
 
-    public PlayerDataManager getPlayerDataManager() { return playerDataManager; }
-    public CheckManager getCheckManager()           { return checkManager; }
-    public ViolationManager getViolationManager()   { return violationManager; }
-    public AlertManager getAlertManager()           { return alertManager; }
-    public AntiXRayManager getAntiXRayManager()     { return antiXRayManager; }
-    public CheckAPI getCheckAPI()                   { return checkAPI; }
+    public PlayerDataManager getPlayerDataManager()          { return playerDataManager; }
+    public CheckManager getCheckManager()                    { return checkManager; }
+    public ViolationManager getViolationManager()            { return violationManager; }
+    public AlertManager getAlertManager()                    { return alertManager; }
+    public AntiXRayManager getAntiXRayManager()              { return antiXRayManager; }
+    public DatabaseManager getDatabaseManager()              { return databaseManager; }
+    public DiscordWebhookManager getDiscordWebhookManager()  { return discordWebhookManager; }
+    public CheckAPI getCheckAPI()                            { return checkAPI; }
 }

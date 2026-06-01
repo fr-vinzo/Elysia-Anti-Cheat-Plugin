@@ -2,9 +2,8 @@ package fr.elysia.anticheat.listeners;
 
 import fr.elysia.anticheat.ElysiaAntiCheat;
 import fr.elysia.anticheat.api.CheckResult;
-import fr.elysia.anticheat.checks.movement.FlyCheck;
-import fr.elysia.anticheat.checks.movement.NoFallCheck;
-import fr.elysia.anticheat.checks.movement.SpeedCheck;
+import fr.elysia.anticheat.checks.combat.VelocityCheck;
+import fr.elysia.anticheat.checks.movement.*;
 import fr.elysia.anticheat.data.PlayerData;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -20,12 +19,22 @@ public class PlayerMoveListener implements Listener {
     private final SpeedCheck speedCheck;
     private final FlyCheck flyCheck;
     private final NoFallCheck noFallCheck;
+    private final TimerCheck timerCheck;
+    private final StepCheck stepCheck;
+    private final FastLadderCheck fastLadderCheck;
+    private final JesusCheck jesusCheck;
+    private final VelocityCheck velocityCheck;
 
     public PlayerMoveListener(ElysiaAntiCheat plugin) {
         this.plugin = plugin;
-        this.speedCheck = plugin.getCheckManager().getTyped(SpeedCheck.class);
-        this.flyCheck = plugin.getCheckManager().getTyped(FlyCheck.class);
-        this.noFallCheck = plugin.getCheckManager().getTyped(NoFallCheck.class);
+        this.speedCheck      = plugin.getCheckManager().getTyped(SpeedCheck.class);
+        this.flyCheck        = plugin.getCheckManager().getTyped(FlyCheck.class);
+        this.noFallCheck     = plugin.getCheckManager().getTyped(NoFallCheck.class);
+        this.timerCheck      = plugin.getCheckManager().getTyped(TimerCheck.class);
+        this.stepCheck       = plugin.getCheckManager().getTyped(StepCheck.class);
+        this.fastLadderCheck = plugin.getCheckManager().getTyped(FastLadderCheck.class);
+        this.jesusCheck      = plugin.getCheckManager().getTyped(JesusCheck.class);
+        this.velocityCheck   = plugin.getCheckManager().getTyped(VelocityCheck.class);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -34,34 +43,61 @@ public class PlayerMoveListener implements Listener {
         if (player.hasPermission("elysiaac.bypass")) return;
 
         Location from = event.getFrom();
-        Location to = event.getTo();
+        Location to   = event.getTo();
         if (to == null) return;
 
-        // Ignorer si seulement la rotation a changé
-        if (from.getBlockX() == to.getBlockX()
-                && from.getBlockY() == to.getBlockY()
-                && from.getBlockZ() == to.getBlockZ()) return;
+        boolean posChanged = from.getBlockX() != to.getBlockX()
+                || from.getBlockY() != to.getBlockY()
+                || from.getBlockZ() != to.getBlockZ();
 
         PlayerData data = plugin.getPlayerDataManager().get(player.getUniqueId());
         if (data == null) return;
 
+        // Timer (compte tous les paquets de mouvement, même rotation)
+        if (timerCheck != null) {
+            CheckResult r = timerCheck.check(data);
+            if (r.isFlagged()) plugin.getViolationManager().flag(player, timerCheck.getName(), r.getDetails());
+        }
+
+        if (!posChanged) return;
+
         // Speed
         if (speedCheck != null) {
-            CheckResult r = speedCheck.check(player, from, to);
-            if (r.isFlagged()) {
-                plugin.getViolationManager().flag(player, speedCheck.getName(), r.getDetails());
-            }
+            CheckResult r = speedCheck.check(player, from, to, data);
+            if (r.isFlagged()) plugin.getViolationManager().flag(player, speedCheck.getName(), r.getDetails());
         }
 
         // Fly
         if (flyCheck != null) {
             CheckResult r = flyCheck.check(player, from, to, data);
-            if (r.isFlagged()) {
-                plugin.getViolationManager().flag(player, flyCheck.getName(), r.getDetails());
-            }
+            if (r.isFlagged()) plugin.getViolationManager().flag(player, flyCheck.getName(), r.getDetails());
         }
 
-        // Mise à jour de la position
+        // Step
+        if (stepCheck != null) {
+            CheckResult r = stepCheck.check(player, from, to, data);
+            if (r.isFlagged()) plugin.getViolationManager().flag(player, stepCheck.getName(), r.getDetails());
+        }
+
+        // FastLadder
+        if (fastLadderCheck != null) {
+            CheckResult r = fastLadderCheck.check(player, from, to, data);
+            if (r.isFlagged()) plugin.getViolationManager().flag(player, fastLadderCheck.getName(), r.getDetails());
+        }
+
+        // Jesus
+        if (jesusCheck != null) {
+            CheckResult r = jesusCheck.check(player, from, to, data);
+            if (r.isFlagged()) plugin.getViolationManager().flag(player, jesusCheck.getName(), r.getDetails());
+        }
+
+        // Velocity post-coup
+        if (velocityCheck != null) {
+            CheckResult r = velocityCheck.checkMovement(player, from, to, data);
+            if (r.isFlagged()) plugin.getViolationManager().flag(player, velocityCheck.getName(), r.getDetails());
+        }
+
+        // Mise à jour
         data.setPreviousLocation(from.clone());
         data.setLastLocation(to.clone());
         data.setLastMoveTime(System.currentTimeMillis());
@@ -80,12 +116,9 @@ public class PlayerMoveListener implements Listener {
         double fallDist = player.getFallDistance();
         data.setLastFallDistance(fallDist);
 
-        // NoFall vérifie si les dégâts reçus sont cohérents avec la chute
         if (noFallCheck != null && event.getDamage() <= 0 && fallDist > 0) {
             CheckResult r = noFallCheck.checkNoDamage(player, fallDist);
-            if (r.isFlagged()) {
-                plugin.getViolationManager().flag(player, noFallCheck.getName(), r.getDetails());
-            }
+            if (r.isFlagged()) plugin.getViolationManager().flag(player, noFallCheck.getName(), r.getDetails());
         }
     }
 }

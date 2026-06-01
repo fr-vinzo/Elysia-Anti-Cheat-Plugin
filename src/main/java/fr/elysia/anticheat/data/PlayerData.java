@@ -1,6 +1,7 @@
 package fr.elysia.anticheat.data;
 
 import org.bukkit.Location;
+import org.bukkit.Material;
 
 import java.util.*;
 
@@ -17,24 +18,69 @@ public class PlayerData {
     private double lastFallDistance;
     private boolean teleported;
     private long teleportTime;
-    private int speedViolations;
-    private int flyViolations;
-    private int noFallViolations;
+
+    // Fenêtre glissante de vitesses horizontales (anti-bypass bunny hop)
+    private final Deque<Double> speedSamples = new ArrayDeque<>();
+    private static final int SPEED_WINDOW = 10;
+
+    // Timer check : timestamps des events de mouvement par seconde
+    private final Deque<Long> moveTimes = new ArrayDeque<>();
+
+    // Ladder check
+    private double lastLadderY;
+    private long lastLadderTime;
+
+    // Jesus (marche sur l'eau)
+    private int waterWalkTicks;
+
+    // Step hack
+    private boolean wasOnGround;
 
     // ---- Combat ----
     private final Deque<Long> hitTimestamps = new ArrayDeque<>();
     private final Map<UUID, Long> recentTargets = new LinkedHashMap<>();
-    private int killAuraViolations;
-    private int reachViolations;
+
+    // AutoClicker variance
+    private long lastHitTime;
+    private final Deque<Long> hitIntervals = new ArrayDeque<>();
+
+    // Velocity (knockback ignoré)
+    private long lastKnockbackTime;
+    private double expectedKbX;
+    private double expectedKbZ;
+
+    // AimBot : angles de visée au moment des frappes
+    private final Deque<Double> aimAngles = new ArrayDeque<>();
+
+    // FastBow
+    private long lastBowShot;
 
     // ---- Mining / XRay ----
     private int totalBlocksMined;
     private int oresMined;
+    private double weightedOreScore; // minerais rares comptent plus
     private long miningWindowStart;
-    private int xrayViolations;
     private boolean xraySuspect;
 
-    // ---- Violations globales ----
+    // InstaBreak
+    private long blockBreakStart;
+    private Material currentlyBreaking;
+
+    // Nuker
+    private final Deque<Location> recentBreakLocations = new ArrayDeque<>();
+    private long lastBreakTime;
+
+    // FastPlace / Scaffold
+    private final Deque<Long> placeTimes = new ArrayDeque<>();
+    private int scaffoldCount;
+    private long lastScaffoldTime;
+
+    // ---- Score de confiance ----
+    // Commence à 0.5, monte avec le temps sans violation, descend sur chaque flag
+    private double confidenceScore = 0.5;
+    private final long joinTime;
+
+    // ---- Violations ----
     private final Map<String, Integer> violationLevels = new HashMap<>();
     private final List<String> recentAlerts = new ArrayList<>();
 
@@ -42,9 +88,12 @@ public class PlayerData {
         this.uuid = uuid;
         this.name = name;
         this.miningWindowStart = System.currentTimeMillis();
+        this.joinTime = System.currentTimeMillis();
     }
 
-    // ---- Getters / Setters Mouvement ----
+    // ============================================================
+    //  Mouvement
+    // ============================================================
 
     public Location getLastLocation() { return lastLocation; }
     public void setLastLocation(Location loc) { this.lastLocation = loc; }
@@ -68,38 +117,132 @@ public class PlayerData {
     public long getTeleportTime() { return teleportTime; }
     public void setTeleportTime(long t) { this.teleportTime = t; }
 
-    // ---- Getters / Setters Combat ----
+    // Fenêtre glissante de vitesse
+    public void addSpeedSample(double speed) {
+        speedSamples.addLast(speed);
+        if (speedSamples.size() > SPEED_WINDOW) speedSamples.pollFirst();
+    }
 
-    public Deque<Long> getHitTimestamps() { return hitTimestamps; }
+    public double getAverageSpeed() {
+        if (speedSamples.isEmpty()) return 0;
+        return speedSamples.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+    }
+
+    public int getSpeedSampleCount() { return speedSamples.size(); }
+
+    // Timer check
+    public void recordMovePacket() {
+        long now = System.currentTimeMillis();
+        moveTimes.addLast(now);
+        while (!moveTimes.isEmpty() && now - moveTimes.peekFirst() > 1000) moveTimes.pollFirst();
+    }
+
+    public int getMovePacketsPerSecond() { return moveTimes.size(); }
+
+    // Ladder
+    public double getLastLadderY() { return lastLadderY; }
+    public void setLastLadderY(double y) { this.lastLadderY = y; }
+    public long getLastLadderTime() { return lastLadderTime; }
+    public void setLastLadderTime(long t) { this.lastLadderTime = t; }
+
+    // Jesus
+    public int getWaterWalkTicks() { return waterWalkTicks; }
+    public void incrementWaterWalk() { this.waterWalkTicks++; }
+    public void resetWaterWalk() { this.waterWalkTicks = 0; }
+
+    // Step
+    public boolean wasOnGround() { return wasOnGround; }
+    public void setWasOnGround(boolean b) { this.wasOnGround = b; }
+
+    // ============================================================
+    //  Combat
+    // ============================================================
 
     public void recordHit(UUID targetUUID) {
         long now = System.currentTimeMillis();
         hitTimestamps.addLast(now);
-        while (!hitTimestamps.isEmpty() && now - hitTimestamps.peekFirst() > 1000) {
-            hitTimestamps.pollFirst();
-        }
+        while (!hitTimestamps.isEmpty() && now - hitTimestamps.peekFirst() > 1000) hitTimestamps.pollFirst();
+
         recentTargets.put(targetUUID, now);
         recentTargets.entrySet().removeIf(e -> now - e.getValue() > 500);
+
+        if (lastHitTime > 0) {
+            long interval = now - lastHitTime;
+            hitIntervals.addLast(interval);
+            if (hitIntervals.size() > 20) hitIntervals.pollFirst();
+        }
+        lastHitTime = now;
     }
 
     public int getCPS() { return hitTimestamps.size(); }
-
     public int getRecentTargetCount() { return recentTargets.size(); }
 
-    // ---- Getters / Setters Mining ----
+    /**
+     * Écart-type des intervalles entre frappes.
+     * Faible écart-type = rythme trop régulier = autoclicker suspect.
+     */
+    public double getHitIntervalStdDev() {
+        if (hitIntervals.size() < 5) return Double.MAX_VALUE;
+        double mean = hitIntervals.stream().mapToLong(Long::longValue).average().orElse(0);
+        double variance = hitIntervals.stream()
+                .mapToDouble(i -> Math.pow(i - mean, 2))
+                .average().orElse(0);
+        return Math.sqrt(variance);
+    }
+
+    public double getHitIntervalMean() {
+        if (hitIntervals.isEmpty()) return 0;
+        return hitIntervals.stream().mapToLong(Long::longValue).average().orElse(0);
+    }
+
+    public int getHitIntervalSampleCount() { return hitIntervals.size(); }
+
+    // Velocity
+    public long getLastKnockbackTime() { return lastKnockbackTime; }
+    public void setLastKnockbackTime(long t) { this.lastKnockbackTime = t; }
+    public double getExpectedKbX() { return expectedKbX; }
+    public void setExpectedKbX(double v) { this.expectedKbX = v; }
+    public double getExpectedKbZ() { return expectedKbZ; }
+    public void setExpectedKbZ(double v) { this.expectedKbZ = v; }
+
+    // AimBot
+    public void recordAimAngle(double angle) {
+        aimAngles.addLast(angle);
+        if (aimAngles.size() > 15) aimAngles.pollFirst();
+    }
+
+    public double getAverageAimAngle() {
+        if (aimAngles.isEmpty()) return 45.0;
+        return aimAngles.stream().mapToDouble(Double::doubleValue).average().orElse(45.0);
+    }
+
+    public int getAimAngleSampleCount() { return aimAngles.size(); }
+
+    // FastBow
+    public long getLastBowShot() { return lastBowShot; }
+    public void setLastBowShot(long t) { this.lastBowShot = t; }
+
+    // ============================================================
+    //  Mining / XRay
+    // ============================================================
 
     public int getTotalBlocksMined() { return totalBlocksMined; }
     public int getOresMined() { return oresMined; }
+    public double getWeightedOreScore() { return weightedOreScore; }
     public long getMiningWindowStart() { return miningWindowStart; }
 
-    public void recordBlockMined(boolean isOre) {
+    public void recordBlockMined(boolean isOre, double oreWeight) {
         totalBlocksMined++;
-        if (isOre) oresMined++;
+        if (isOre) {
+            oresMined++;
+            weightedOreScore += oreWeight;
+        }
     }
 
     public void resetMiningWindow() {
         totalBlocksMined = 0;
         oresMined = 0;
+        weightedOreScore = 0;
         miningWindowStart = System.currentTimeMillis();
     }
 
@@ -108,10 +251,74 @@ public class PlayerData {
         return (double) oresMined / totalBlocksMined;
     }
 
+    public double getWeightedOreRatio() {
+        if (totalBlocksMined == 0) return 0;
+        return weightedOreScore / totalBlocksMined;
+    }
+
     public boolean isXraySuspect() { return xraySuspect; }
     public void setXraySuspect(boolean suspect) { this.xraySuspect = suspect; }
 
-    // ---- Violations générales ----
+    // InstaBreak
+    public long getBlockBreakStart() { return blockBreakStart; }
+    public void setBlockBreakStart(long t) { this.blockBreakStart = t; }
+    public Material getCurrentlyBreaking() { return currentlyBreaking; }
+    public void setCurrentlyBreaking(Material m) { this.currentlyBreaking = m; }
+
+    // Nuker
+    public void recordBreakLocation(Location loc) {
+        recentBreakLocations.addLast(loc.clone());
+        if (recentBreakLocations.size() > 12) recentBreakLocations.pollFirst();
+        lastBreakTime = System.currentTimeMillis();
+    }
+
+    public Deque<Location> getRecentBreakLocations() { return recentBreakLocations; }
+    public long getLastBreakTime() { return lastBreakTime; }
+
+    // FastPlace / Scaffold
+    public void recordPlace() {
+        long now = System.currentTimeMillis();
+        placeTimes.addLast(now);
+        while (!placeTimes.isEmpty() && now - placeTimes.peekFirst() > 1000) placeTimes.pollFirst();
+    }
+
+    public int getPlacesPerSecond() { return placeTimes.size(); }
+
+    public int getScaffoldCount() { return scaffoldCount; }
+    public void incrementScaffold() {
+        this.scaffoldCount++;
+        this.lastScaffoldTime = System.currentTimeMillis();
+    }
+    public void resetScaffold() { this.scaffoldCount = 0; }
+    public long getLastScaffoldTime() { return lastScaffoldTime; }
+
+    // ============================================================
+    //  Score de confiance
+    // ============================================================
+
+    public double getConfidenceScore() { return confidenceScore; }
+
+    public void increaseConfidence() {
+        confidenceScore = Math.min(1.0, confidenceScore + 0.005);
+    }
+
+    public void decreaseConfidence(double amount) {
+        confidenceScore = Math.max(0.0, confidenceScore - amount);
+    }
+
+    /**
+     * Multiplicateur appliqué aux seuils de tolérance (1.0 à 1.4).
+     * Un joueur de confiance a plus de marge avant d'être flaggé.
+     */
+    public double getToleranceMultiplier() {
+        return 1.0 + (confidenceScore * 0.4);
+    }
+
+    public long getJoinTime() { return joinTime; }
+
+    // ============================================================
+    //  Violations
+    // ============================================================
 
     public int getViolationLevel(String checkName) {
         return violationLevels.getOrDefault(checkName, 0);
@@ -120,6 +327,7 @@ public class PlayerData {
     public int incrementViolation(String checkName) {
         int vl = violationLevels.getOrDefault(checkName, 0) + 1;
         violationLevels.put(checkName, vl);
+        decreaseConfidence(0.03);
         return vl;
     }
 
@@ -130,6 +338,8 @@ public class PlayerData {
     public void resetAllViolations() {
         violationLevels.clear();
         recentAlerts.clear();
+        xraySuspect = false;
+        resetMiningWindow();
     }
 
     public Map<String, Integer> getAllViolations() {
@@ -152,9 +362,9 @@ public class PlayerData {
     public UUID getUuid() { return uuid; }
     public String getName() { return name; }
 
-    /** Décroissance des violations (appelée périodiquement). */
     public void decayViolations(int amount) {
         violationLevels.replaceAll((k, v) -> Math.max(0, v - amount));
         violationLevels.entrySet().removeIf(e -> e.getValue() <= 0);
+        increaseConfidence();
     }
 }

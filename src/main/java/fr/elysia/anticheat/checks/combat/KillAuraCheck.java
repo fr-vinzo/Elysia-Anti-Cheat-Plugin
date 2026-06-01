@@ -9,6 +9,14 @@ import fr.elysia.anticheat.utils.MathUtil;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
+/**
+ * Détecte le KillAura.
+ *
+ * Améliorations v2 :
+ * - Le check d'angle utilise maintenant aussi le score de confiance
+ * - Vérification multi-cibles conservée
+ * - CPS : vérification séparée dans AutoClickerCheck (variance)
+ */
 public class KillAuraCheck extends Check {
 
     public KillAuraCheck(ElysiaAntiCheat plugin) {
@@ -20,26 +28,31 @@ public class KillAuraCheck extends Check {
 
         data.recordHit(target.getUniqueId());
 
-        // --- Vérification CPS ---
+        // --- CPS brut ---
         int maxCPS = plugin.getConfig().getInt("checks.kill-aura.max-cps", 18);
         int cps = data.getCPS();
         if (cps > maxCPS) {
             return CheckResult.fail("CPS=" + cps + " max=" + maxCPS);
         }
 
-        // --- Vérification angle de regard ---
+        // --- Angle de regard ---
+        // Les KA modernes ont une "smooth rotation" — on garde le check angle
+        // mais à une valeur suffisamment stricte pour ne pas fausser positiver
         double maxAngle = plugin.getConfig().getDouble("checks.kill-aura.max-angle", 90.0);
+        // Tolérance : joueurs de confiance → seuil d'angle légèrement réduit (plus strict)
+        double effectiveMaxAngle = maxAngle * (2.0 - data.getToleranceMultiplier());
         double angle = MathUtil.getAngleToTarget(player, target);
-        if (angle > maxAngle) {
-            return CheckResult.fail(
-                    String.format("angle=%.1f° max=%.1f° (cible=%s)", angle, maxAngle, target.getType().name()));
+
+        if (angle > effectiveMaxAngle) {
+            return CheckResult.fail(String.format(
+                    "angle=%.1f° max=%.1f° cible=%s", angle, effectiveMaxAngle, target.getType().name()));
         }
 
-        // --- Vérification multi-cibles (KA frappe plusieurs entités à la fois) ---
+        // --- Multi-cibles ---
         int maxTargets = plugin.getConfig().getInt("checks.kill-aura.max-targets-per-tick", 2);
         int targets = data.getRecentTargetCount();
         if (targets > maxTargets) {
-            return CheckResult.fail("cibles_récentes=" + targets + " max=" + maxTargets);
+            return CheckResult.fail("cibles_500ms=" + targets + " max=" + maxTargets);
         }
 
         return CheckResult.pass();

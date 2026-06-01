@@ -3,12 +3,9 @@ package fr.elysia.anticheat.managers;
 import fr.elysia.anticheat.ElysiaAntiCheat;
 import fr.elysia.anticheat.checks.Check;
 import fr.elysia.anticheat.checks.CheckCategory;
-import fr.elysia.anticheat.checks.combat.KillAuraCheck;
-import fr.elysia.anticheat.checks.combat.ReachCheck;
-import fr.elysia.anticheat.checks.movement.FlyCheck;
-import fr.elysia.anticheat.checks.movement.NoFallCheck;
-import fr.elysia.anticheat.checks.movement.SpeedCheck;
-import fr.elysia.anticheat.checks.world.XRayCheck;
+import fr.elysia.anticheat.checks.combat.*;
+import fr.elysia.anticheat.checks.movement.*;
+import fr.elysia.anticheat.checks.world.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,12 +20,27 @@ public class CheckManager {
     }
 
     public void registerDefaults() {
+        // Mouvement
         register(new SpeedCheck(plugin));
         register(new FlyCheck(plugin));
         register(new NoFallCheck(plugin));
+        register(new TimerCheck(plugin));
+        register(new StepCheck(plugin));
+        register(new FastLadderCheck(plugin));
+        register(new JesusCheck(plugin));
+        // Combat
         register(new KillAuraCheck(plugin));
         register(new ReachCheck(plugin));
+        register(new VelocityCheck(plugin));
+        register(new AutoClickerCheck(plugin));
+        register(new AimBotCheck(plugin));
+        register(new FastBowCheck(plugin));
+        // Monde
         register(new XRayCheck(plugin));
+        register(new FastPlaceCheck(plugin));
+        register(new ScaffoldCheck(plugin));
+        register(new NukerCheck(plugin));
+        register(new InstaBreakCheck(plugin));
     }
 
     public void register(Check check) {

@@ -1,7 +1,6 @@
 package fr.elysia.anticheat.managers;
 
 import fr.elysia.anticheat.ElysiaAntiCheat;
-import fr.elysia.anticheat.data.PlayerData;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -10,14 +9,13 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Gère l'obfuscation des minerais côté client.
+ * Anti-XRay / ESP — version améliorée.
  *
- * Principe :
- *  - Quand un joueur charge un chunk ou se déplace, les blocs de minerais
- *    cachés (non adjacents à l'air) lui sont remplacés visuellement par de la pierre.
- *  - Quand il mine un bloc adjacent à un minerai, le minerai lui est révélé.
- *  - Si le joueur est suspect de X-Ray, des faux minerais lui sont envoyés
- *    pour perturber sa vision.
+ * Améliorations v2 :
+ * - Utilisation de ChunkSnapshot pour le scan asynchrone (thread-safe)
+ * - Obfuscation des chunks adjacents (anti-bypass border)
+ * - Révélation progressive dans un rayon de 3 blocs autour du joueur
+ * - Faux minerais seed-based par joueur (positions stables entre sessions)
  */
 public class AntiXRayManager {
 
@@ -26,8 +24,10 @@ public class AntiXRayManager {
     private Material replacementBlock;
     private int maxY;
 
-    /** Blocs obfusqués par joueur : Location -> matériau réel */
+    /** Blocs obfusqués par joueur : Location → matériau réel */
     private final Map<UUID, Map<Location, Material>> hiddenOres = new ConcurrentHashMap<>();
+    /** Chunks déjà obfusqués par joueur : évite le double traitement */
+    private final Map<UUID, Set<Long>> processedChunks = new ConcurrentHashMap<>();
 
     public AntiXRayManager(ElysiaAntiCheat plugin) {
         this.plugin = plugin;
@@ -39,11 +39,9 @@ public class AntiXRayManager {
         String replacementName = plugin.getConfig().getString("anti-xray.replacement-block", "STONE");
         replacementBlock = Material.matchMaterial(replacementName);
         if (replacementBlock == null) replacementBlock = Material.STONE;
-
         maxY = plugin.getConfig().getInt("anti-xray.max-y", 16);
 
-        List<String> configOres = plugin.getConfig().getStringList("anti-xray.ore-types");
-        for (String name : configOres) {
+        for (String name : plugin.getConfig().getStringList("anti-xray.ore-types")) {
             Material mat = Material.matchMaterial(name);
             if (mat != null) oreTypes.add(mat);
         }
@@ -53,116 +51,141 @@ public class AntiXRayManager {
         return plugin.getConfig().getBoolean("anti-xray.enabled", true);
     }
 
-    /** Obfusque les minerais d'un chunk pour un joueur donné (appelé sync). */
-    public void obfuscateChunkForPlayer(Player player, Chunk chunk) {
-        if (!isEnabled()) return;
-        if (player.hasPermission("elysiaac.bypass")) return;
+    // ---- Obfuscation ----
 
+    /** Obfusque un chunk et ses voisins immédiats pour un joueur (anti-bypass border). */
+    public void obfuscateChunkForPlayer(Player player, Chunk chunk) {
+        if (!isEnabled() || player.hasPermission("elysiaac.bypass")) return;
+
+        int radius = plugin.getConfig().getInt("anti-xray.obfuscation-radius", 1);
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                Chunk target = chunk.getWorld().getChunkAt(chunk.getX() + dx, chunk.getZ() + dz);
+                if (target.isLoaded()) obfuscateSingleChunk(player, target);
+            }
+        }
+    }
+
+    private void obfuscateSingleChunk(Player player, Chunk chunk) {
         UUID uuid = player.getUniqueId();
+        long chunkKey = chunkKey(chunk);
+
+        Set<Long> done = processedChunks.computeIfAbsent(uuid, k -> ConcurrentHashMap.newKeySet());
+        if (!done.add(chunkKey)) return; // déjà traité
+
         Map<Location, Material> hidden = hiddenOres.computeIfAbsent(uuid, k -> new ConcurrentHashMap<>());
 
-        // Scan asynchrone, envoi sync
+        // ChunkSnapshot est thread-safe — scan async
+        ChunkSnapshot snapshot = chunk.getChunkSnapshot(false, false, false);
+
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             List<Map.Entry<Location, Material>> toHide = new ArrayList<>();
+            World world = chunk.getWorld();
 
             for (int x = 0; x < 16; x++) {
                 for (int z = 0; z < 16; z++) {
-                    for (int y = chunk.getWorld().getMinHeight(); y <= maxY; y++) {
-                        Block block = chunk.getBlock(x, y, z);
-                        if (!oreTypes.contains(block.getType())) continue;
-                        if (isVisibleToAir(block)) continue; // Déjà visible naturellement
+                    for (int y = world.getMinHeight(); y <= maxY; y++) {
+                        Material mat = snapshot.getBlockType(x, y, z);
+                        if (!oreTypes.contains(mat)) continue;
+                        if (isVisibleInSnapshot(snapshot, x, y, z, world.getMinHeight())) continue;
 
-                        Location loc = block.getLocation();
-                        toHide.add(Map.entry(loc, block.getType()));
+                        int wx = chunk.getX() * 16 + x;
+                        int wz = chunk.getZ() * 16 + z;
+                        Location loc = new Location(world, wx, y, wz);
+                        toHide.add(Map.entry(loc, mat));
                     }
                 }
             }
 
             if (toHide.isEmpty()) return;
 
-            // Envoi sur le thread principal
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (!player.isOnline()) return;
                 for (var entry : toHide) {
-                    Location loc = entry.getKey();
-                    hidden.put(loc, entry.getValue());
-                    player.sendBlockChange(loc, replacementBlock.createBlockData());
+                    hidden.put(entry.getKey(), entry.getValue());
+                    player.sendBlockChange(entry.getKey(), replacementBlock.createBlockData());
                 }
             });
         });
     }
 
-    /** Révèle les vrais minerais adjacents quand un joueur mine un bloc. */
+    /** Révèle les minerais obfusqués dans un rayon de 3 blocs autour de la position donnée. */
     public void revealAdjacentOres(Player player, Location broken) {
         if (!isEnabled()) return;
 
-        UUID uuid = player.getUniqueId();
-        Map<Location, Material> hidden = hiddenOres.get(uuid);
+        Map<Location, Material> hidden = hiddenOres.get(player.getUniqueId());
         if (hidden == null || hidden.isEmpty()) return;
 
-        int[][] offsets = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
-        for (int[] off : offsets) {
-            Location adjacent = broken.clone().add(off[0], off[1], off[2]);
-            Material real = hidden.remove(adjacent);
-            if (real != null) {
-                player.sendBlockChange(adjacent, real.createBlockData());
+        int revealRadius = plugin.getConfig().getInt("anti-xray.reveal-radius", 3);
+
+        for (int dx = -revealRadius; dx <= revealRadius; dx++) {
+            for (int dy = -revealRadius; dy <= revealRadius; dy++) {
+                for (int dz = -revealRadius; dz <= revealRadius; dz++) {
+                    Location loc = broken.clone().add(dx, dy, dz);
+                    Material real = hidden.remove(loc);
+                    if (real != null) {
+                        player.sendBlockChange(loc, real.createBlockData());
+                    }
+                }
             }
         }
     }
 
-    /** Envoie de faux minerais à un X-rayer suspecté pour perturber sa vision. */
+    /** Envoie des faux minerais à un X-rayer suspecté (seed-based = stable). */
     public void sendFakeOres(Player player) {
-        if (!isEnabled()) return;
-        if (!plugin.getConfig().getBoolean("anti-xray.fake-ores-on-suspect", true)) return;
+        if (!isEnabled() || !plugin.getConfig().getBoolean("anti-xray.fake-ores-on-suspect", true)) return;
 
         int count = plugin.getConfig().getInt("anti-xray.fake-ores-count", 30);
         Location base = player.getLocation();
         World world = player.getWorld();
-        Random rng = new Random();
+        // Seed par joueur → positions cohérentes entre appels
+        Random rng = new Random(player.getUniqueId().getMostSignificantBits());
 
-        // Minerais rares à envoyer comme faux
         Material[] rareOres = {
                 Material.DIAMOND_ORE, Material.DEEPSLATE_DIAMOND_ORE,
                 Material.GOLD_ORE, Material.DEEPSLATE_GOLD_ORE,
-                Material.EMERALD_ORE
+                Material.EMERALD_ORE, Material.ANCIENT_DEBRIS
         };
 
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (!player.isOnline()) return;
             for (int i = 0; i < count; i++) {
-                int dx = rng.nextInt(32) - 16;
-                int dy = rng.nextInt(20) - 10;
-                int dz = rng.nextInt(32) - 16;
+                int dx = rng.nextInt(40) - 20;
+                int dy = rng.nextInt(24) - 12;
+                int dz = rng.nextInt(40) - 20;
                 int y = base.getBlockY() + dy;
                 if (y < world.getMinHeight() || y > maxY) continue;
 
-                Location fake = new Location(world,
-                        base.getBlockX() + dx,
-                        y,
-                        base.getBlockZ() + dz);
-
+                Location fake = new Location(world, base.getBlockX() + dx, y, base.getBlockZ() + dz);
                 Block real = fake.getBlock();
-                // N'envoie des faux que sur de la pierre/deepslate pour ne pas masquer les vrais blocs
                 if (real.getType() == Material.STONE || real.getType() == Material.DEEPSLATE
                         || real.getType() == Material.TUFF) {
-                    Material fakeOre = rareOres[rng.nextInt(rareOres.length)];
-                    player.sendBlockChange(fake, fakeOre.createBlockData());
+                    player.sendBlockChange(fake, rareOres[rng.nextInt(rareOres.length)].createBlockData());
                 }
             }
         });
     }
 
-    /** Nettoie les données d'un joueur à sa déconnexion. */
     public void cleanup(UUID uuid) {
         hiddenOres.remove(uuid);
+        processedChunks.remove(uuid);
     }
 
-    private boolean isVisibleToAir(Block block) {
+    private boolean isVisibleInSnapshot(ChunkSnapshot snap, int x, int y, int z, int minY) {
         int[][] faces = {{1,0,0},{-1,0,0},{0,1,0},{0,-1,0},{0,0,1},{0,0,-1}};
         for (int[] f : faces) {
-            Block neighbor = block.getRelative(f[0], f[1], f[2]);
-            if (neighbor.isEmpty() || neighbor.isLiquid()) return true;
+            int nx = x + f[0], ny = y + f[1], nz = z + f[2];
+            // Hors du chunk → considéré comme potentiellement visible (évite faux masquage)
+            if (nx < 0 || nx > 15 || nz < 0 || nz > 15) return true;
+            if (ny < minY || ny > 319) return true;
+            Material neighbor = snap.getBlockType(nx, ny, nz);
+            if (neighbor == Material.AIR || neighbor == Material.CAVE_AIR || neighbor == Material.VOID_AIR
+                    || neighbor == Material.WATER || neighbor == Material.LAVA) return true;
         }
         return false;
+    }
+
+    private long chunkKey(Chunk chunk) {
+        return ((long) chunk.getX() << 32) | (chunk.getZ() & 0xFFFFFFFFL);
     }
 }

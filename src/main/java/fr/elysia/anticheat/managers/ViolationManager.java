@@ -15,10 +15,6 @@ public class ViolationManager {
         this.plugin = plugin;
     }
 
-    /**
-     * Enregistre une violation pour un joueur sur un check donné.
-     * Déclenche les alertes et punitions si les seuils sont atteints.
-     */
     public void flag(Player player, String checkName, String details) {
         if (player.hasPermission("elysiaac.bypass")) return;
 
@@ -26,29 +22,32 @@ public class ViolationManager {
         if (data == null) return;
 
         int vl = data.incrementViolation(checkName);
-        String alertMsg = MessageUtil.formatAlert(player.getName(), checkName, vl, details);
         data.addRecentAlert("§7[VL:" + vl + "] §c" + checkName + " §8» §f" + details);
 
-        // Lancer l'event Bukkit (API — d'autres plugins peuvent l'annuler)
+        // API event — annulable par d'autres plugins
         ViolationEvent event = new ViolationEvent(player, checkName, vl, details);
         Bukkit.getPluginManager().callEvent(event);
         if (event.isCancelled()) return;
 
-        // Seuil d'alerte staff
-        var checkObj = plugin.getCheckManager().get(checkName);
-        int alertVL = checkObj != null ? getAlertVL(checkName) : 5;
-        int kickVL = checkObj != null ? getKickVL(checkName) : 15;
+        int alertVL = getAlertVL(checkName);
+        int kickVL  = getKickVL(checkName);
 
         if (vl >= alertVL) {
             plugin.getAlertManager().sendAlert(player, checkName, vl, details);
+            // Discord — uniquement au-dessus du seuil configuré
+            plugin.getDiscordWebhookManager().sendViolationAlert(
+                    player.getName(), checkName, vl, details);
         }
 
         if (plugin.getConfig().getBoolean("general.log-violations", true)) {
-            plugin.getLogger().info("[VIOLATION] " + player.getName() + " | " + checkName
-                    + " | VL:" + vl + " | " + details);
+            plugin.getLogger().info("[VIOLATION] " + player.getName()
+                    + " | " + checkName + " | VL:" + vl + " | " + details);
         }
 
-        // Kick si seuil atteint
+        // Persistance SQLite
+        plugin.getDatabaseManager().logViolation(
+                player.getUniqueId().toString(), player.getName(), checkName, vl, details);
+
         if (vl >= kickVL) {
             kickPlayer(player, checkName);
         }
@@ -63,16 +62,21 @@ public class ViolationManager {
             if (!player.isOnline()) return;
             player.kickPlayer(kickMsg);
             MessageUtil.broadcastAlert(MessageUtil.formatKick(player.getName(), checkName));
+            plugin.getDiscordWebhookManager().sendKickAlert(player.getName(), checkName);
         });
     }
 
     private int getAlertVL(String checkName) {
-        String key = "checks." + checkName.toLowerCase().replace(" ", "-") + ".alert-vl";
-        return plugin.getConfig().getInt(key, 5);
+        return plugin.getConfig().getInt(
+                "checks." + key(checkName) + ".alert-vl", 5);
     }
 
     private int getKickVL(String checkName) {
-        String key = "checks." + checkName.toLowerCase().replace(" ", "-") + ".kick-vl";
-        return plugin.getConfig().getInt(key, 15);
+        return plugin.getConfig().getInt(
+                "checks." + key(checkName) + ".kick-vl", 15);
+    }
+
+    private String key(String checkName) {
+        return checkName.toLowerCase().replace(" ", "-");
     }
 }

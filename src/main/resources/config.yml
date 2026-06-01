@@ -1,27 +1,19 @@
 # ============================================================
-#  Elysia Anti-Cheat - Configuration
+#  Elysia Anti-Cheat — Configuration v2
 # ============================================================
 
 general:
   debug: false
   prefix: "&8[&6Elysia AC&8]&r"
   log-violations: true
-  log-file: "violations.log"
 
-# ============================================================
-#  Paramètres des punitions
-# ============================================================
 punishments:
-  # Seuil de violations pour le kick automatique
   kick-threshold: 20
-  # Message de kick
   kick-message: |
     &c&lElysia Anti-Cheat
     &7Tu as été expulsé pour comportement suspect.
     &7Si tu penses que c'est une erreur, contacte le staff.
-  # Seuil pour notifier les admins
   alert-threshold: 5
-  # Réduction des violations par minute (decay)
   violation-decay-rate: 2
   violation-decay-interval: 60
 
@@ -31,80 +23,155 @@ punishments:
 checks:
   speed:
     enabled: true
-    # Multiplicateur de tolérance (1.2 = 20% de marge pour le ping)
     tolerance: 1.25
-    # VL avant alerte staff
     alert-vl: 8
-    # VL avant kick
     kick-vl: 20
 
   fly:
     enabled: true
-    # Nombre de ticks en l'air avant de suspecter
     airtime-threshold: 25
     alert-vl: 6
     kick-vl: 15
 
   no-fall:
     enabled: true
-    # Hauteur de chute minimale pour déclencher la vérification (blocs)
     min-fall-distance: 4.0
     alert-vl: 5
     kick-vl: 12
+
+  timer:
+    enabled: true
+    # Paquets de mouvement max par seconde (vanilla ~20, Timer hack ~40+)
+    max-packets-per-second: 24
+    alert-vl: 8
+    kick-vl: 20
+
+  step:
+    enabled: true
+    # Hauteur max d'une marche en un tick (vanilla escalier = 0.625)
+    max-step-height: 0.65
+    alert-vl: 6
+    kick-vl: 15
+
+  fast-ladder:
+    enabled: true
+    # Vitesse max sur une échelle/liane (blocs/tick)
+    max-speed: 0.13
+    alert-vl: 5
+    kick-vl: 12
+
+  jesus:
+    enabled: true
+    # Ticks consécutifs sur l'eau avant flag
+    min-ticks: 5
+    alert-vl: 6
+    kick-vl: 15
 
   # ============================================================
   #  Checks — Combat
   # ============================================================
   kill-aura:
     enabled: true
-    # CPS maximum autorisé (20 = limite humaine)
     max-cps: 18
-    # Angle max entre le regard et la cible (degrés)
     max-angle: 90.0
-    # Nombre de cibles différentes max par 0.5 seconde
     max-targets-per-tick: 2
     alert-vl: 7
     kick-vl: 18
 
   reach:
     enabled: true
-    # Distance max d'attaque en blocs (3.0 = vanilla + tolérance ping)
     max-reach: 4.5
     alert-vl: 6
     kick-vl: 15
 
+  velocity:
+    enabled: true
+    # Pourcentage minimum du recul attendu que le joueur doit subir
+    min-knockback-percent: 40
+    alert-vl: 8
+    kick-vl: 20
+
+  autoclicker:
+    enabled: true
+    # Coefficient de variation minimum (%) des intervalles entre frappes
+    # Humain : ~20-40%, AutoClicker : <10%
+    min-coefficient-variation: 12.0
+    # CPS minimum pour activer ce check
+    min-cps-to-check: 4
+    alert-vl: 7
+    kick-vl: 18
+
+  aimbot:
+    enabled: true
+    # Angle moyen maximum de visée (degrés) sur les dernières frappes
+    # Humain : 5-20°, AimBot : <2°
+    max-avg-angle: 3.0
+    # Nombre de frappes minimum avant d'évaluer
+    min-samples: 10
+    alert-vl: 8
+    kick-vl: 20
+
+  fast-bow:
+    enabled: true
+    # Intervalle minimum entre deux tirs en ms (arc plein : 1000ms)
+    min-interval-ms: 400
+    alert-vl: 5
+    kick-vl: 12
+
   # ============================================================
-  #  Checks — Monde / XRay
+  #  Checks — Monde
   # ============================================================
   xray:
     enabled: true
-    # Ratio ores/blocs minés pour déclencher la suspicion (0.15 = 15%)
     suspicious-ratio: 0.15
-    # Ratio pour flag confirmé
     flag-ratio: 0.28
-    # Nombre minimal de blocs minés avant d'évaluer
     min-blocks-mined: 50
-    # Fenêtre de temps d'analyse (secondes)
     time-window: 300
     alert-vl: 5
     kick-vl: 12
+
+  fast-place:
+    enabled: true
+    # Blocs posés max par seconde
+    max-per-second: 12
+    alert-vl: 6
+    kick-vl: 15
+
+  scaffold:
+    enabled: true
+    # Blocs consécutifs sous soi en mouvement avant flag
+    min-consecutive: 6
+    alert-vl: 7
+    kick-vl: 18
+
+  nuker:
+    enabled: true
+    # Dispersion max (blocs) entre les positions des blocs cassés récents
+    max-spread: 4.0
+    min-breaks: 5
+    alert-vl: 7
+    kick-vl: 15
+
+  instabreak:
+    enabled: true
+    # Dureté minimale du bloc pour activer le check
+    min-hardness: 1.5
+    alert-vl: 6
+    kick-vl: 15
 
 # ============================================================
 #  Anti-XRay / Obfuscation
 # ============================================================
 anti-xray:
   enabled: true
-  # Rayon en chunks autour du joueur à obfusquer
-  obfuscation-radius: 2
-  # Remplacer les minerais cachés par ce bloc
+  # Rayon de chunks adjacents à obfusquer (anti-bypass border)
+  obfuscation-radius: 1
   replacement-block: STONE
-  # Y maximum pour appliquer l'obfuscation (les minerais sont en dessous)
   max-y: 16
-  # Ajouter des faux minerais pour perturber les X-rayers suspectés
+  # Rayon de révélation quand un joueur mine (blocs)
+  reveal-radius: 3
   fake-ores-on-suspect: true
-  # Nombre de faux minerais à envoyer quand suspect
   fake-ores-count: 30
-  # Minerais à obfusquer
   ore-types:
     - DIAMOND_ORE
     - DEEPSLATE_DIAMOND_ORE
@@ -121,3 +188,24 @@ anti-xray:
     - DEEPSLATE_REDSTONE_ORE
     - COPPER_ORE
     - DEEPSLATE_COPPER_ORE
+
+# ============================================================
+#  Base de données SQLite (historique persistant)
+# ============================================================
+database:
+  enabled: false
+  file: "violations.db"
+  # Nombre max d'entrées conservées par joueur
+  max-records-per-player: 100
+
+# ============================================================
+#  Intégration Discord
+# ============================================================
+discord:
+  enabled: false
+  # URL du webhook Discord (Settings → Intégrations → Webhooks)
+  webhook-url: ""
+  # VL minimum pour envoyer une alerte Discord
+  min-vl: 10
+  # true = envoyer uniquement les kicks sur Discord
+  kicks-only: false

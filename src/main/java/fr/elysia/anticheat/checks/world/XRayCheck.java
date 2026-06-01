@@ -7,24 +7,37 @@ import fr.elysia.anticheat.checks.CheckCategory;
 import fr.elysia.anticheat.data.PlayerData;
 import org.bukkit.Material;
 
-import java.util.Set;
+import java.util.Map;
 
+/**
+ * Détecte le X-Ray par analyse des statistiques de minage.
+ *
+ * Améliorations v2 :
+ * - Score pondéré par rareté : diamant/ancient debris comptent plus que fer/charbon
+ * - Réduction des faux positifs pour les explorateurs de grottes
+ * - Seuil ajusté selon le score de confiance du joueur
+ */
 public class XRayCheck extends Check {
 
-    private final Set<Material> oreTypes = Set.of(
-            Material.DIAMOND_ORE, Material.DEEPSLATE_DIAMOND_ORE,
-            Material.GOLD_ORE, Material.DEEPSLATE_GOLD_ORE,
-            Material.EMERALD_ORE, Material.DEEPSLATE_EMERALD_ORE,
-            Material.ANCIENT_DEBRIS
-    );
-
-    // Minerais "communs" — comptent mais avec un poids moindre dans la détection
-    private final Set<Material> commonOreTypes = Set.of(
-            Material.IRON_ORE, Material.DEEPSLATE_IRON_ORE,
-            Material.COPPER_ORE, Material.DEEPSLATE_COPPER_ORE,
-            Material.LAPIS_ORE, Material.DEEPSLATE_LAPIS_ORE,
-            Material.REDSTONE_ORE, Material.DEEPSLATE_REDSTONE_ORE,
-            Material.COAL_ORE, Material.DEEPSLATE_COAL_ORE
+    // Poids de chaque minerai (rare = poids élevé)
+    private static final Map<Material, Double> ORE_WEIGHTS = Map.ofEntries(
+            Map.entry(Material.DIAMOND_ORE, 3.0),
+            Map.entry(Material.DEEPSLATE_DIAMOND_ORE, 3.0),
+            Map.entry(Material.ANCIENT_DEBRIS, 4.0),
+            Map.entry(Material.EMERALD_ORE, 3.0),
+            Map.entry(Material.DEEPSLATE_EMERALD_ORE, 3.0),
+            Map.entry(Material.GOLD_ORE, 2.0),
+            Map.entry(Material.DEEPSLATE_GOLD_ORE, 2.0),
+            Map.entry(Material.LAPIS_ORE, 1.5),
+            Map.entry(Material.DEEPSLATE_LAPIS_ORE, 1.5),
+            Map.entry(Material.IRON_ORE, 0.5),
+            Map.entry(Material.DEEPSLATE_IRON_ORE, 0.5),
+            Map.entry(Material.COPPER_ORE, 0.3),
+            Map.entry(Material.DEEPSLATE_COPPER_ORE, 0.3),
+            Map.entry(Material.REDSTONE_ORE, 0.4),
+            Map.entry(Material.DEEPSLATE_REDSTONE_ORE, 0.4),
+            Map.entry(Material.COAL_ORE, 0.1),
+            Map.entry(Material.DEEPSLATE_COAL_ORE, 0.1)
     );
 
     public XRayCheck(ElysiaAntiCheat plugin) {
@@ -32,16 +45,16 @@ public class XRayCheck extends Check {
     }
 
     public boolean isOre(Material material) {
-        return oreTypes.contains(material) || commonOreTypes.contains(material);
+        return ORE_WEIGHTS.containsKey(material);
     }
 
-    public boolean isRareOre(Material material) {
-        return oreTypes.contains(material);
+    public double getOreWeight(Material material) {
+        return ORE_WEIGHTS.getOrDefault(material, 0.0);
     }
 
     /**
-     * Analyse les statistiques de minage d'un joueur et retourne un CheckResult.
-     * N'est appelé que si le seuil minimum de blocs minés est atteint.
+     * Analyse les statistiques de minage.
+     * Utilise à la fois le ratio brut ET le score pondéré pour plus de précision.
      */
     public CheckResult analyze(PlayerData data) {
         if (!isEnabled()) return CheckResult.pass();
@@ -49,7 +62,6 @@ public class XRayCheck extends Check {
         int minBlocks = plugin.getConfig().getInt("checks.xray.min-blocks-mined", 50);
         if (data.getTotalBlocksMined() < minBlocks) return CheckResult.pass();
 
-        // Réinitialiser si la fenêtre de temps est dépassée
         long windowSeconds = plugin.getConfig().getLong("checks.xray.time-window", 300);
         long elapsed = (System.currentTimeMillis() - data.getMiningWindowStart()) / 1000L;
         if (elapsed > windowSeconds) {
@@ -57,20 +69,27 @@ public class XRayCheck extends Check {
             return CheckResult.pass();
         }
 
-        double ratio = data.getOreRatio();
+        double weightedRatio = data.getWeightedOreRatio();
+        double rawRatio = data.getOreRatio();
+
         double flagRatio = plugin.getConfig().getDouble("checks.xray.flag-ratio", 0.28);
         double suspectRatio = plugin.getConfig().getDouble("checks.xray.suspicious-ratio", 0.15);
 
-        if (ratio >= flagRatio) {
+        // Les joueurs de confiance ont un seuil plus élevé
+        flagRatio *= data.getToleranceMultiplier();
+        suspectRatio *= data.getToleranceMultiplier();
+
+        // On flag si le score pondéré OU le ratio brut dépasse le seuil
+        if (weightedRatio >= flagRatio || rawRatio >= flagRatio * 0.8) {
             return CheckResult.fail(String.format(
-                    "ratio=%.1f%% (minerais=%d/blocs=%d) [CONFIRMÉ]",
-                    ratio * 100, data.getOresMined(), data.getTotalBlocksMined()));
+                    "ratio_pondéré=%.2f ratio_brut=%.1f%% (minerais=%d/blocs=%d)",
+                    weightedRatio, rawRatio * 100, data.getOresMined(), data.getTotalBlocksMined()));
         }
 
-        if (ratio >= suspectRatio) {
+        if (weightedRatio >= suspectRatio || rawRatio >= suspectRatio * 0.8) {
             return CheckResult.fail(String.format(
-                    "ratio=%.1f%% (minerais=%d/blocs=%d) [SUSPECT]",
-                    ratio * 100, data.getOresMined(), data.getTotalBlocksMined()));
+                    "[SUSPECT] ratio=%.1f%% score=%.2f (minerais=%d/blocs=%d)",
+                    rawRatio * 100, weightedRatio, data.getOresMined(), data.getTotalBlocksMined()));
         }
 
         return CheckResult.pass();

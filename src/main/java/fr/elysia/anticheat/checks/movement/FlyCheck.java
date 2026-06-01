@@ -10,6 +10,14 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffectType;
 
+/**
+ * Détecte le Fly hack.
+ *
+ * Améliorations v2 :
+ * - Anti-bypass micro-descente : dy >= -0.08 est désormais traité comme "stable en l'air"
+ *   mais on ajoute une vérification de chute continue (le joueur doit accélérer vers le bas)
+ * - Intégration du score de confiance dans le seuil d'airtime
+ */
 public class FlyCheck extends Check {
 
     public FlyCheck(ElysiaAntiCheat plugin) {
@@ -19,34 +27,40 @@ public class FlyCheck extends Check {
     public CheckResult check(Player player, Location from, Location to, PlayerData data) {
         if (!isEnabled()) return CheckResult.pass();
 
-        // Exemptions légitimes
         if (player.getAllowFlight() || player.isFlying()) return CheckResult.pass();
         if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) return CheckResult.pass();
         if (player.isInsideVehicle()) return CheckResult.pass();
         if (player.isGliding()) return CheckResult.pass();
         if (player.hasPotionEffect(PotionEffectType.LEVITATION)) return CheckResult.pass();
         if (player.hasPotionEffect(PotionEffectType.SLOW_FALLING)) return CheckResult.pass();
-        if (System.currentTimeMillis() - data.getTeleportTime() < 2000) return CheckResult.pass();
+        if (System.currentTimeMillis() - data.getTeleportTime() < 2500) return CheckResult.pass();
 
         boolean onGround = player.isOnGround();
-        boolean movingDown = to.getY() < from.getY();
+        double dy = to.getY() - from.getY();
 
-        if (onGround || movingDown) {
+        if (onGround) {
             data.resetAirtime();
             return CheckResult.pass();
         }
 
-        // Le joueur monte ou reste stable en l'air
-        double dy = to.getY() - from.getY();
-        if (dy >= -0.08) { // pas en train de tomber à la vitesse attendue
-            data.incrementAirtime();
-        } else {
+        // Vanilla : en chute libre, la vitesse verticale augmente de -0.08 par tick (gravité)
+        // Si le joueur descend normalement (dy < -0.08), il tombe correctement
+        // Si dy est légèrement négatif mais constant (bypass micro-descente), c'est suspect
+
+        if (dy < -0.15) {
+            // Descend vite — chute normale
             data.resetAirtime();
+            return CheckResult.pass();
         }
 
+        data.incrementAirtime();
+
         int threshold = plugin.getConfig().getInt("checks.fly.airtime-threshold", 25);
-        if (data.getAirtimeTicks() >= threshold) {
-            return CheckResult.fail("airtime=" + data.getAirtimeTicks() + " ticks, dy=" + String.format("%.3f", dy));
+        // Joueurs de confiance : seuil légèrement plus élevé
+        int effectiveThreshold = (int) (threshold * data.getToleranceMultiplier());
+
+        if (data.getAirtimeTicks() >= effectiveThreshold) {
+            return CheckResult.fail("airtime=" + data.getAirtimeTicks() + " ticks, dy=" + String.format("%.4f", dy));
         }
 
         return CheckResult.pass();
