@@ -32,6 +32,7 @@ public class SpeedCheck extends Check {
         if (!isEnabled()) return CheckResult.pass();
         if (player.isInsideVehicle()) return CheckResult.pass();
         if (player.isFlying()) return CheckResult.pass();
+        if (player.isGliding()) return CheckResult.pass();  // Élytra
         if (player.isSwimming()) return CheckResult.pass();
         if (System.currentTimeMillis() - data.getTeleportTime() < 2500) return CheckResult.pass();
 

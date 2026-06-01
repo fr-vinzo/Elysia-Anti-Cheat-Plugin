@@ -147,8 +147,12 @@ checks:
   nuker:
     enabled: true
     # Dispersion max (blocs) entre les positions des blocs cassés récents
-    max-spread: 4.0
-    min-breaks: 5
+    # 6.5 = couvre une pioche 5x5 légitime (diagonale ~5.66), au-dessus = nuker
+    max-spread: 6.5
+    # Nombre minimum de blocs cassés avant d'évaluer
+    min-breaks: 8
+    # Fenêtre de temps en ms (les blocs cassés hors de cette fenêtre sont ignorés)
+    time-window-ms: 300
     alert-vl: 7
     kick-vl: 15
 
