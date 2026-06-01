@@ -56,7 +56,9 @@ public class ViolationManager {
     private void kickPlayer(Player player, String checkName) {
         String rawMsg = plugin.getConfig().getString("punishments.kick-message",
                 "&c&lElysia Anti-Cheat\n&7Comportement suspect détecté.\n&7Contacte le staff si c'est une erreur.");
-        String kickMsg = MessageUtil.colorize(rawMsg);
+        String kickMsg = MessageUtil.colorize(
+                rawMsg.replace("{check}", checkName).stripTrailing()
+                + "\n" + "&8Détection : &c" + checkName);
 
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (!player.isOnline()) return;

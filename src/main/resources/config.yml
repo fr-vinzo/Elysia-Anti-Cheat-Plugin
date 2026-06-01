@@ -9,6 +9,7 @@ general:
 
 punishments:
   kick-threshold: 20
+  # {check} est remplacé automatiquement par le nom du check déclencheur
   kick-message: |
     &c&lElysia Anti-Cheat
     &7Tu as été expulsé pour comportement suspect.
