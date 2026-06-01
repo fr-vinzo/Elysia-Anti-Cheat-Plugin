@@ -31,6 +31,14 @@
             <version>1.21-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
+        <!-- Requis transitivement par Spigot API -->
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>24.1.0</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- SQLite JDBC — bundled dans le jar final pour l'historique persistant -->
         <dependency>
             <groupId>org.xerial</groupId>
