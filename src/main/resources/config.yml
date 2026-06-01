@@ -24,7 +24,7 @@ punishments:
 checks:
   speed:
     enabled: true
-    tolerance: 1.25
+    tolerance: 1.35
     alert-vl: 8
     kick-vl: 20
 
@@ -81,7 +81,7 @@ checks:
 
   reach:
     enabled: true
-    max-reach: 4.5
+    max-reach: 5.0
     alert-vl: 6
     kick-vl: 15
 
@@ -141,7 +141,7 @@ checks:
   scaffold:
     enabled: true
     # Blocs consécutifs sous soi en mouvement avant flag
-    min-consecutive: 6
+    min-consecutive: 10
     alert-vl: 7
     kick-vl: 18
 

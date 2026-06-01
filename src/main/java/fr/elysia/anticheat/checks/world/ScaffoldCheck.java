@@ -30,10 +30,10 @@ public class ScaffoldCheck extends Check {
 
 
         double horizontalSpeed = data.getPreviousLocation() != null
-                ? MathUtil.horizontalSpeed(data.getLastLocation(), playerFeet)
+                ? MathUtil.horizontalSpeed(data.getPreviousLocation(), playerFeet)
                 : 0;
 
-        boolean moving = horizontalSpeed > 0.05 || !player.isOnGround();
+        boolean moving = horizontalSpeed > 0.15 || !player.isOnGround();
         if (!moving) {
             data.resetScaffold();
             return CheckResult.pass();

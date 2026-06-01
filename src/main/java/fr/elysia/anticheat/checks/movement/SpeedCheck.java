@@ -14,7 +14,7 @@ import org.bukkit.potion.PotionEffectType;
 
 public class SpeedCheck extends Check {
 
-    private static final double BASE_MAX_SPEED = 0.34;
+    private static final double BASE_MAX_SPEED = 0.36;
 
     public SpeedCheck(ElysiaAntiCheat plugin) {
         super(plugin, "Speed", CheckCategory.MOVEMENT);
@@ -35,7 +35,7 @@ public class SpeedCheck extends Check {
         data.addSpeedSample(speed);
 
 
-        if (data.getSpeedSampleCount() < 5) return CheckResult.pass();
+        if (data.getSpeedSampleCount() < 8) return CheckResult.pass();
 
         double avgSpeed = data.getAverageSpeed();
         double maxSpeed = getMaxAllowedSpeed(player, data);
