@@ -13,6 +13,8 @@ public final class ElysiaAntiCheat extends JavaPlugin {
 
     private static ElysiaAntiCheat instance;
 
+    private volatile double currentTPS = 20.0;
+
     private PlayerDataManager playerDataManager;
     private CheckManager checkManager;
     private ViolationManager violationManager;
@@ -62,6 +64,14 @@ public final class ElysiaAntiCheat extends JavaPlugin {
                 () -> playerDataManager.decayAll(),
                 decayInterval * 20L, decayInterval * 20L);
 
+        long[] lastTickMs = {System.currentTimeMillis()};
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            long now = System.currentTimeMillis();
+            long elapsed = now - lastTickMs[0];
+            if (elapsed > 0) currentTPS = Math.min(20.0, 20_000.0 / elapsed);
+            lastTickMs[0] = now;
+        }, 20L, 20L);
+
 
         Bukkit.getScheduler().runTaskLater(this, () -> {
             for (var player : Bukkit.getOnlinePlayers()) {
@@ -90,6 +100,7 @@ public final class ElysiaAntiCheat extends JavaPlugin {
 
 
     public static ElysiaAntiCheat getInstance()              { return instance; }
+    public double getCurrentTPS()                            { return currentTPS; }
 
     public PlayerDataManager getPlayerDataManager()          { return playerDataManager; }
     public CheckManager getCheckManager()                    { return checkManager; }

@@ -5,7 +5,6 @@ import fr.elysia.anticheat.api.CheckResult;
 import fr.elysia.anticheat.checks.Check;
 import fr.elysia.anticheat.checks.CheckCategory;
 import fr.elysia.anticheat.data.PlayerData;
-import org.bukkit.Bukkit;
 
 public class TimerCheck extends Check {
 
@@ -16,7 +15,7 @@ public class TimerCheck extends Check {
     public CheckResult check(PlayerData data) {
         if (!isEnabled()) return CheckResult.pass();
 
-        if (Bukkit.getServer().getTPS()[0] < 18.0) return CheckResult.pass();
+        if (plugin.getCurrentTPS() < 18.0) return CheckResult.pass();
 
         data.recordMovePacket();
         int pps = data.getMovePacketsPerSecond();
