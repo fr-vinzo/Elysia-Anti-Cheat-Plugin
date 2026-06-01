@@ -1,0 +1,29 @@
+package fr.elysia.anticheat.checks.combat;
+
+import fr.elysia.anticheat.ElysiaAntiCheat;
+import fr.elysia.anticheat.api.CheckResult;
+import fr.elysia.anticheat.checks.Check;
+import fr.elysia.anticheat.checks.CheckCategory;
+import fr.elysia.anticheat.utils.MathUtil;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+
+public class ReachCheck extends Check {
+
+    public ReachCheck(ElysiaAntiCheat plugin) {
+        super(plugin, "Reach", CheckCategory.COMBAT);
+    }
+
+    public CheckResult check(Player player, Entity target) {
+        if (!isEnabled()) return CheckResult.pass();
+
+        double maxReach = plugin.getConfig().getDouble("checks.reach.max-reach", 4.5);
+        double distance = MathUtil.distance3D(player.getEyeLocation(), target.getLocation());
+
+        if (distance > maxReach) {
+            return CheckResult.fail(String.format("distance=%.2f max=%.2f", distance, maxReach));
+        }
+
+        return CheckResult.pass();
+    }
+}

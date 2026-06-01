@@ -1,0 +1,123 @@
+# ============================================================
+#  Elysia Anti-Cheat - Configuration
+# ============================================================
+
+general:
+  debug: false
+  prefix: "&8[&6Elysia AC&8]&r"
+  log-violations: true
+  log-file: "violations.log"
+
+# ============================================================
+#  Paramètres des punitions
+# ============================================================
+punishments:
+  # Seuil de violations pour le kick automatique
+  kick-threshold: 20
+  # Message de kick
+  kick-message: |
+    &c&lElysia Anti-Cheat
+    &7Tu as été expulsé pour comportement suspect.
+    &7Si tu penses que c'est une erreur, contacte le staff.
+  # Seuil pour notifier les admins
+  alert-threshold: 5
+  # Réduction des violations par minute (decay)
+  violation-decay-rate: 2
+  violation-decay-interval: 60
+
+# ============================================================
+#  Checks — Mouvement
+# ============================================================
+checks:
+  speed:
+    enabled: true
+    # Multiplicateur de tolérance (1.2 = 20% de marge pour le ping)
+    tolerance: 1.25
+    # VL avant alerte staff
+    alert-vl: 8
+    # VL avant kick
+    kick-vl: 20
+
+  fly:
+    enabled: true
+    # Nombre de ticks en l'air avant de suspecter
+    airtime-threshold: 25
+    alert-vl: 6
+    kick-vl: 15
+
+  no-fall:
+    enabled: true
+    # Hauteur de chute minimale pour déclencher la vérification (blocs)
+    min-fall-distance: 4.0
+    alert-vl: 5
+    kick-vl: 12
+
+  # ============================================================
+  #  Checks — Combat
+  # ============================================================
+  kill-aura:
+    enabled: true
+    # CPS maximum autorisé (20 = limite humaine)
+    max-cps: 18
+    # Angle max entre le regard et la cible (degrés)
+    max-angle: 90.0
+    # Nombre de cibles différentes max par 0.5 seconde
+    max-targets-per-tick: 2
+    alert-vl: 7
+    kick-vl: 18
+
+  reach:
+    enabled: true
+    # Distance max d'attaque en blocs (3.0 = vanilla + tolérance ping)
+    max-reach: 4.5
+    alert-vl: 6
+    kick-vl: 15
+
+  # ============================================================
+  #  Checks — Monde / XRay
+  # ============================================================
+  xray:
+    enabled: true
+    # Ratio ores/blocs minés pour déclencher la suspicion (0.15 = 15%)
+    suspicious-ratio: 0.15
+    # Ratio pour flag confirmé
+    flag-ratio: 0.28
+    # Nombre minimal de blocs minés avant d'évaluer
+    min-blocks-mined: 50
+    # Fenêtre de temps d'analyse (secondes)
+    time-window: 300
+    alert-vl: 5
+    kick-vl: 12
+
+# ============================================================
+#  Anti-XRay / Obfuscation
+# ============================================================
+anti-xray:
+  enabled: true
+  # Rayon en chunks autour du joueur à obfusquer
+  obfuscation-radius: 2
+  # Remplacer les minerais cachés par ce bloc
+  replacement-block: STONE
+  # Y maximum pour appliquer l'obfuscation (les minerais sont en dessous)
+  max-y: 16
+  # Ajouter des faux minerais pour perturber les X-rayers suspectés
+  fake-ores-on-suspect: true
+  # Nombre de faux minerais à envoyer quand suspect
+  fake-ores-count: 30
+  # Minerais à obfusquer
+  ore-types:
+    - DIAMOND_ORE
+    - DEEPSLATE_DIAMOND_ORE
+    - GOLD_ORE
+    - DEEPSLATE_GOLD_ORE
+    - IRON_ORE
+    - DEEPSLATE_IRON_ORE
+    - EMERALD_ORE
+    - DEEPSLATE_EMERALD_ORE
+    - ANCIENT_DEBRIS
+    - LAPIS_ORE
+    - DEEPSLATE_LAPIS_ORE
+    - REDSTONE_ORE
+    - DEEPSLATE_REDSTONE_ORE
+    - COPPER_ORE
+    - DEEPSLATE_COPPER_ORE

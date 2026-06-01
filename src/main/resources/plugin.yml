@@ -1,0 +1,37 @@
+name: ElysiaAntiCheat
+version: ${project.version}
+main: fr.elysia.anticheat.ElysiaAntiCheat
+api-version: '1.21'
+description: Anti-Cheat performant pour le serveur Elysia
+authors:
+  - Elysia Staff
+
+commands:
+  eac:
+    description: Commande principale du plugin Elysia Anti-Cheat
+    usage: /<command> [subcommand]
+    permission: elysiaac.use
+    aliases:
+      - anticheat
+      - elysiaac
+
+permissions:
+  elysiaac.admin:
+    description: Accès administrateur complet à l'anti-cheat
+    default: op
+    children:
+      elysiaac.use: true
+      elysiaac.alerts: true
+      elysiaac.bypass: false
+
+  elysiaac.use:
+    description: Utiliser les commandes /eac
+    default: op
+
+  elysiaac.alerts:
+    description: Recevoir les alertes de l'anti-cheat en jeu
+    default: op
+
+  elysiaac.bypass:
+    description: Contourner les vérifications de l'anti-cheat
+    default: false
