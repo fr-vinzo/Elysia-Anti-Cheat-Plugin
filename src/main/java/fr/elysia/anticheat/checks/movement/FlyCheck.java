@@ -35,6 +35,10 @@ public class FlyCheck extends Check {
         if (player.hasPotionEffect(PotionEffectType.LEVITATION)) return CheckResult.pass();
         if (player.hasPotionEffect(PotionEffectType.SLOW_FALLING)) return CheckResult.pass();
         if (System.currentTimeMillis() - data.getTeleportTime() < 2500) return CheckResult.pass();
+        // Mace smash : le joueur est lancé en l'air après l'attaque (vanilla 1.21)
+        if (System.currentTimeMillis() - data.getLastMaceSmashTime() < 3000) return CheckResult.pass();
+        // Wind Charge : peut projeter le joueur en l'air
+        if (System.currentTimeMillis() - data.getLastWindChargeLaunchTime() < 3000) return CheckResult.pass();
 
         boolean onGround = player.isOnGround();
         double dy = to.getY() - from.getY();

@@ -35,6 +35,9 @@ public class SpeedCheck extends Check {
         if (player.isGliding()) return CheckResult.pass();  // Élytra
         if (player.isSwimming()) return CheckResult.pass();
         if (System.currentTimeMillis() - data.getTeleportTime() < 2500) return CheckResult.pass();
+        // Wind Charge / Mace smash : vitesse anormale temporaire vanilla 1.21
+        if (System.currentTimeMillis() - data.getLastWindChargeLaunchTime() < 3000) return CheckResult.pass();
+        if (System.currentTimeMillis() - data.getLastMaceSmashTime() < 3000) return CheckResult.pass();
 
         double speed = MathUtil.horizontalSpeed(from, to);
         data.addSpeedSample(speed);

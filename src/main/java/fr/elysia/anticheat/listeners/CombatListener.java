@@ -4,6 +4,7 @@ import fr.elysia.anticheat.ElysiaAntiCheat;
 import fr.elysia.anticheat.api.CheckResult;
 import fr.elysia.anticheat.checks.combat.*;
 import fr.elysia.anticheat.data.PlayerData;
+import org.bukkit.Material;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -60,6 +61,11 @@ public class CombatListener implements Listener {
         if (aimBotCheck != null) {
             CheckResult r = aimBotCheck.check(attacker, target, data);
             if (r.isFlagged()) plugin.getViolationManager().flag(attacker, aimBotCheck.getName(), r.getDetails());
+        }
+
+        // Mace smash attack (1.21) : l'attaquant est projeté en l'air après l'impact
+        if (attacker.getInventory().getItemInMainHand().getType() == Material.MACE) {
+            data.setLastMaceSmashTime(System.currentTimeMillis());
         }
 
         // Velocity : enregistrer le knockback attendu pour la victime

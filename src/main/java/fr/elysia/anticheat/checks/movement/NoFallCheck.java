@@ -57,6 +57,8 @@ public class NoFallCheck extends Check {
         // Exemptions
         if (player.hasPotionEffect(PotionEffectType.SLOW_FALLING)) return CheckResult.pass();
         if (player.hasPotionEffect(PotionEffectType.JUMP_BOOST)) return CheckResult.pass();
+        // Mace smash attack : annule les dégâts de chute en vanilla 1.21
+        if (player.getInventory().getItemInMainHand().getType() == Material.MACE) return CheckResult.pass();
 
         Material below = player.getLocation().clone().subtract(0, 0.1, 0).getBlock().getType();
         if (isSoftLanding(below)) return CheckResult.pass();

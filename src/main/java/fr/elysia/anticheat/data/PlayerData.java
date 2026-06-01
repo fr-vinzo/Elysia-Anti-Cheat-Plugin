@@ -55,6 +55,10 @@ public class PlayerData {
     // FastBow
     private long lastBowShot;
 
+    // Mace & Wind Charge grace periods (faux positifs 1.21)
+    private long lastMaceSmashTime;
+    private long lastWindChargeLaunchTime;
+
     // ---- Mining / XRay ----
     private int totalBlocksMined;
     private int oresMined;
@@ -221,6 +225,12 @@ public class PlayerData {
     // FastBow
     public long getLastBowShot() { return lastBowShot; }
     public void setLastBowShot(long t) { this.lastBowShot = t; }
+
+    // Mace & Wind Charge
+    public long getLastMaceSmashTime() { return lastMaceSmashTime; }
+    public void setLastMaceSmashTime(long t) { this.lastMaceSmashTime = t; }
+    public long getLastWindChargeLaunchTime() { return lastWindChargeLaunchTime; }
+    public void setLastWindChargeLaunchTime(long t) { this.lastWindChargeLaunchTime = t; }
 
     // ============================================================
     //  Mining / XRay
